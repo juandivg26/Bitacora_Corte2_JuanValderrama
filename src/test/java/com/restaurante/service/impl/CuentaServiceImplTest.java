@@ -4,10 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,12 +32,16 @@ import com.restaurante.model.domain.EstadoMesa;
 import com.restaurante.model.domain.ItemPedido;
 import com.restaurante.model.domain.Mesa;
 import com.restaurante.model.domain.Pedido;
+import com.restaurante.repository.ICuentaRepository;
 import com.restaurante.service.IMesaService;
 import com.restaurante.service.IPedidoService;
 import com.restaurante.validator.ICuentaValidator;
 
 @ExtendWith(MockitoExtension.class)
 class CuentaServiceImplTest {
+
+    @Mock
+    private ICuentaRepository repository;
 
     @Mock
     private IMesaService mesaService;
@@ -44,10 +55,27 @@ class CuentaServiceImplTest {
     @InjectMocks
     private CuentaServiceImpl service;
 
+    private final Map<Long, Cuenta> almacen = new HashMap<>();
+    private final AtomicLong idGenerador = new AtomicLong(1);
+
     private Mesa mesaSinCuenta;
 
     @BeforeEach
     void setUp() {
+        almacen.clear();
+        idGenerador.set(1);
+        lenient().when(repository.save(any())).thenAnswer(inv -> {
+            Cuenta cuenta = inv.getArgument(0);
+            if (cuenta.getId() == null) {
+                cuenta.setId(idGenerador.getAndIncrement());
+            }
+            almacen.put(cuenta.getId(), cuenta);
+            return cuenta;
+        });
+        lenient().when(repository.findById(anyLong()))
+                .thenAnswer(inv -> Optional.ofNullable(almacen.get((Long) inv.getArgument(0))));
+        lenient().when(repository.findAll()).thenAnswer(inv -> new ArrayList<>(almacen.values()));
+
         mesaSinCuenta = Mesa.builder().id(1L).numero(1).capacidad(4)
                 .estado(EstadoMesa.OCUPADA).cuentaAbierta(false).build();
     }
