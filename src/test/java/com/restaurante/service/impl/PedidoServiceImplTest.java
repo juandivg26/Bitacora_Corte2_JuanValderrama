@@ -157,6 +157,13 @@ class PedidoServiceImplTest {
     }
 
     @Test
+    @DisplayName("obtenerPorId - ID inexistente lanza RecursoNoEncontradoException")
+    void obtenerPorId_noExiste_lanzaExcepcion() {
+        assertThrows(com.restaurante.exception.RecursoNoEncontradoException.class,
+                () -> service.obtenerPorId(99L));
+    }
+
+    @Test
     @DisplayName("obtenerPorMesa - filtra solo los pedidos de esa mesa")
     void obtenerPorMesa_filtraCorrectamente() {
         when(mesaService.obtenerPorId(anyLong())).thenReturn(mesaDisponible);

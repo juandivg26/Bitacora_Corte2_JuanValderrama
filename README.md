@@ -1,230 +1,164 @@
-Sistema de Gestión de Restaurante - API REST
+# American Bites — API REST del Restaurante
 
-API REST desarrollada en Java con Spring Boot para la gestión integral de un restaurante, incluyendo mesas, pedidos, cuentas, platos y reservas.
+**Autor:** Juan Diego Valderrama Gaviria
+**Asignatura:** Diseño y Construcción de Software (DOSW) — Escuela Colombiana de Ingeniería Julio Garavito
+**Entrega:** Bitácora - Restaurante API (Manejo Básico S7 y S8), Corte 2
 
-Proyecto correspondiente a la Bitácora del Corte 2.
+---
 
-Tecnologías Utilizadas
+## Descripción
 
-Java 21 
+API REST para la gestión operativa de **American Bites**, un restaurante de **comida rápida**. El sistema administra la carta de platos, las mesas del local, los pedidos que se toman en cada mesa, el cobro de cuentas y las reservas.
 
-Spring Boot
-
-Spring Web
-
-Spring Data JPA
-
-Spring Validation
-
-Maven para la gestión de dependencias y construcción del proyecto
-
-Springdoc OpenAPI / Swagger para la documentación interactiva de la API
-
-JUnit 5 & Mockito para pruebas unitarias
-
-Capas principales
-
-Capa
-
-Responsabilidad
-
-controller
-
-Recibe y responde peticiones HTTP
-
-service
-
-Contiene la lógica de negocio
-
-repository
-
-Gestiona el acceso a la base de datos
-
-model
-
-Representa las entidades del dominio
-
-dto
-
-Define los datos de entrada y salida de la API
-
-mapper
-
-Convierte entidades a DTOs y viceversa
-
-validator
-
-Realiza validaciones específicas del negocio
-
-exception
-
-Gestiona y centraliza el manejo de errores
-
-config
-
-Contiene configuraciones generales de la aplicación
-
-Funcionalidades Principales
-
-Gestión de Mesas
-
-Permite administrar las mesas disponibles en el restaurante.
-
-Creación de mesas
-
-Actualización de mesas
-
-Consulta de mesas
-
-Consulta del estado de las mesas
-
-Gestión de Pedidos
-
-Permite registrar y realizar seguimiento de los pedidos realizados por los clientes.
-
-Registro de pedidos
-
-Asociación de pedidos a una mesa
-
-Consulta de pedidos
-
-Seguimiento del estado de los pedidos
-
-Gestión de Cuentas
-
-Permite gestionar las cuentas generadas por los clientes.
-
-Cálculo del valor de la cuenta
-
-Consulta de cuentas
-
-Cierre de cuentas
-
-Gestión de Platos
-
-Permite administrar los platos disponibles en el menú.
-
-Creación de platos
-
-Actualización de platos
-
-Consulta de platos
-
-Administración del menú
-
-Gestión de Reservas
-
-Permite controlar las reservas realizadas por los clientes.
-
-Creación de reservas
-
-Consulta de reservas
-
-Gestión de reservas por cliente
-
-Gestión de reservas por fecha
-
-Requisitos Previos
-
-Antes de ejecutar el proyecto, es necesario contar con:
-
-JDK 21
-
-Apache Maven 3.8+
-
-Para verificar las versiones instaladas:
-
-java -version
-mvn -version
-
-Instalación y Ejecución
-
-1. Clonar el repositorio
-
-git clone <URL_DEL_REPOSITORIO>
-
-Ingresar al directorio del proyecto:
-
-cd Bitacora-2/Bitacora_Corte2_JuanValderrama
-
-2. Compilar el proyecto
-
-Ejecutar:
-
-mvn clean package
-
-Este comando limpia compilaciones anteriores, compila el proyecto y genera el archivo ejecutable correspondiente.
-
-3. Ejecutar la aplicación
-
-Para iniciar la aplicación con Spring Boot:
-
+El proyecto está construido en **Java 21 + Spring Boot**, siguiendo una arquitectura por capas (Dominio → DTO → Mapper → Service/Validator → Controller → Exception Handler). **No usa base de datos**: toda la información se guarda en memoria (`ConcurrentHashMap`) mientras la aplicación está corriendo, por lo que los datos se reinician cada vez que se reinicia el servidor.
+
+### Tecnologías
+
+| Tecnología | Uso |
+|---|---|
+| Java 21 | Lenguaje base |
+| Spring Boot 3.3.4 (Web + Validation) | Framework REST |
+| Maven | Gestión de dependencias y build |
+| Lombok | Reducción de boilerplate (`@Data`, `@Slf4j`, `@RequiredArgsConstructor`) |
+| MapStruct | Mapeo automático entre DTOs y dominio |
+| springdoc-openapi (Swagger UI) | Documentación interactiva de la API |
+| JUnit 5 + Mockito | Pruebas unitarias |
+| JaCoCo | Cobertura de pruebas |
+| SonarQube / SonarCloud | Análisis estático de código |
+
+### Arquitectura por capas
+
+| Capa | Responsabilidad |
+|---|---|
+| `model/domain` | Entidades del dominio y su lógica de negocio propia (`Plato`, `Mesa`, `Pedido`, `ItemPedido`, `Cuenta`, `Reserva`) |
+| `model/dto/request` `model/dto/response` | Contratos de entrada/salida de la API, con validaciones `@Valid` |
+| `mapper` | Traduce entre DTOs y dominio (MapStruct) |
+| `service` / `service/impl` | Lógica de negocio y orquestación |
+| `validator` / `validator/impl` | Validaciones de negocio (duplicados, transiciones de estado, reglas propias) |
+| `controller` | Expone los endpoints REST |
+| `exception` | Excepciones de dominio + `GlobalExceptionHandler` centralizado |
+| `config` | Swagger y CORS |
+
+---
+
+## Funcionalidades
+
+### Gestión de Platos (carta)
+Crear, actualizar, consultar y activar/desactivar disponibilidad de los platos del menú, con filtro por categoría.
+
+### Gestión de Mesas
+Registrar mesas, consultar su estado (`DISPONIBLE` / `OCUPADA` / `RESERVADA`) y cambiarlo.
+
+### Menú (vista del cliente)
+Vista de solo lectura de la carta, mostrando únicamente los platos disponibles — pensada para el cliente, sin las operaciones administrativas de `Platos`.
+
+### Gestión de Pedidos
+Tomar un pedido para una mesa (con uno o más ítems), agregar ítems mientras el pedido siga en estado `RECIBIDO`, y avanzarlo por sus estados (`RECIBIDO → EN_PREPARACION → LISTO → ENTREGADO`, o `CANCELADO` desde los dos primeros). El precio de cada ítem se **congela** en el momento del pedido, aunque el plato cambie de precio después.
+
+### Gestión de Cuentas
+Abrir la cuenta de una mesa, registrar el pago (calculando el total a partir de los pedidos de esa mesa) y cerrarla, liberando la mesa.
+
+### Gestión de Reservas
+Reservar una mesa disponible para una fecha futura, cancelar una reserva vigente o reprogramarla.
+
+### Reglas de negocio propias del concepto
+- Un plato no disponible no puede pedirse ni reservarse mesa alguna con él.
+- Una mesa solo puede tener **una** cuenta abierta a la vez.
+- Una mesa solo puede reservarse si está `DISPONIBLE`.
+- Las transiciones de estado (de `Pedido`, `Mesa`, `Cuenta`) están controladas: no se puede saltar pasos ni retroceder arbitrariamente.
+- El precio de cada ítem de un pedido queda congelado al momento de pedirlo.
+
+---
+
+## Endpoints
+
+### Platos — `/api/v1/platos`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/` | Listar todos los platos |
+| GET | `/disponibles` | Listar solo los disponibles |
+| GET | `/categoria/{categoria}` | Filtrar por categoría |
+| GET | `/{id}` | Obtener un plato por ID |
+| POST | `/` | Crear un plato |
+| PUT | `/{id}` | Actualizar un plato |
+| PATCH | `/{id}/disponible?disponible=` | Cambiar disponibilidad |
+| DELETE | `/{id}` | Eliminar un plato |
+
+### Menú (cliente) — `/api/v1/menu`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/` | Ver el menú (solo platos disponibles) |
+| GET | `/categoria/{categoria}` | Ver el menú por categoría (solo disponibles) |
+
+### Mesas — `/api/v1/mesas`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/` | Listar todas las mesas |
+| GET | `/disponibles` | Listar mesas disponibles |
+| GET | `/{id}` | Obtener una mesa por ID |
+| POST | `/` | Crear una mesa |
+| PATCH | `/{id}/estado?nuevoEstado=` | Cambiar el estado de una mesa |
+| DELETE | `/{id}` | Eliminar una mesa |
+
+### Pedidos — `/api/v1/pedidos`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/` | Listar todos los pedidos |
+| GET | `/mesa/{idMesa}` | Listar pedidos de una mesa |
+| GET | `/{id}` | Obtener un pedido por ID |
+| POST | `/` | Crear un pedido (con sus ítems) |
+| POST | `/{id}/items` | Agregar un ítem a un pedido existente |
+| PATCH | `/{id}/estado` | Cambiar el estado de un pedido |
+
+### Cuentas — `/api/v1/cuentas`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/` | Listar todas las cuentas |
+| GET | `/{id}` | Obtener una cuenta por ID |
+| GET | `/mesa/{idMesa}` | Obtener la cuenta abierta de una mesa |
+| POST | `/` | Abrir la cuenta de una mesa |
+| PATCH | `/{id}/pago` | Registrar el pago de una cuenta |
+| PATCH | `/{id}/cerrar` | Cerrar una cuenta |
+
+### Reservas — `/api/v1/reservas`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/` | Listar todas las reservas |
+| GET | `/mesa/{idMesa}` | Listar reservas de una mesa |
+| GET | `/{id}` | Obtener una reserva por ID |
+| POST | `/` | Crear una reserva |
+| PATCH | `/{id}/cancelar` | Cancelar una reserva |
+| PATCH | `/{id}/reprogramar` | Reprogramar una reserva |
+
+---
+
+## Cómo ejecutar el proyecto
+
+```bash
+git clone https://github.com/juandivg26/Bitacora_Corte2_JuanValderrama.git
+cd Bitacora_Corte2_JuanValderrama
+mvn clean install
 mvn spring-boot:run
+```
 
-La aplicación estará disponible por defecto en:
+La API queda disponible en `http://localhost:8080`.
 
-http://localhost:8080
+- **Swagger UI:** `http://localhost:8080/swagger-ui/index.html`
+- **OpenAPI JSON:** `http://localhost:8080/v3/api-docs`
 
-Documentación de la API
+Para correr las pruebas y generar el reporte de cobertura:
 
-El proyecto utiliza Springdoc OpenAPI / Swagger para generar documentación interactiva de los endpoints disponibles.
+```bash
+mvn clean test
+```
 
-Con la aplicación ejecutándose, se puede acceder a:
+El reporte de JaCoCo queda en `target/site/jacoco/index.html`.
 
-Swagger UI
+---
 
-http://localhost:8080/swagger-ui.html
-
-Desde Swagger UI es posible:
-
-Consultar los endpoints disponibles.
-
-Revisar los métodos HTTP.
-
-Consultar parámetros.
-
-Consultar estructuras de Request y Response.
-
-Ejecutar peticiones directamente contra la API.
-
-OpenAPI Docs
-
-http://localhost:8080/v3/api-docs
-
-Este endpoint proporciona la especificación OpenAPI de la API.
-
-Pruebas Unitarias
-
-El proyecto utiliza JUnit 5 y Mockito para realizar pruebas unitarias.
-
-Para ejecutar todas las pruebas:
-
-mvn test
-
-Las pruebas permiten verificar el comportamiento de los diferentes componentes de la aplicación y detectar errores antes de realizar cambios o nuevas implementaciones.
-
-Construcción del Proyecto
-
-Para generar el archivo .jar ejecutable:
-
-mvn clean package
-
-El archivo generado se encontrará normalmente en:
-
-target/
-
-Para ejecutar el .jar:
-
-java -jar target/<nombre-del-archivo>.jar
-
-URL Base
-
-Una vez iniciada la aplicación:
-
-http://localhost:8080
-
-Proyecto Académico
-
-Proyecto: Sistema de Gestión de Restaurante - API REST
-Asignatura: Desarrollo de Software
-Tecnología principal: Java + Spring Boot
