@@ -13,7 +13,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.restaurante.exception.EstadoInvalidoException;
+import com.restaurante.exception.RecursoNoEncontradoException;
 import com.restaurante.exception.ReglaDeNegocioException;
 import com.restaurante.model.domain.EstadoMesa;
 import com.restaurante.model.domain.EstadoPedido;
@@ -31,12 +36,16 @@ import com.restaurante.model.domain.ItemPedido;
 import com.restaurante.model.domain.Mesa;
 import com.restaurante.model.domain.Pedido;
 import com.restaurante.model.domain.Plato;
+import com.restaurante.repository.IPedidoRepository;
 import com.restaurante.service.IMesaService;
 import com.restaurante.service.IPlatoService;
 import com.restaurante.validator.IPedidoValidator;
 
 @ExtendWith(MockitoExtension.class)
 class PedidoServiceImplTest {
+
+    @Mock
+    private IPedidoRepository repository;
 
     @Mock
     private IPlatoService platoService;
@@ -50,11 +59,28 @@ class PedidoServiceImplTest {
     @InjectMocks
     private PedidoServiceImpl service;
 
+    private final Map<Long, Pedido> almacen = new HashMap<>();
+    private final AtomicLong idGenerador = new AtomicLong(1);
+
     private Mesa mesaDisponible;
     private Plato platoDisponible;
 
     @BeforeEach
     void setUp() {
+        almacen.clear();
+        idGenerador.set(1);
+        lenient().when(repository.save(any())).thenAnswer(inv -> {
+            Pedido pedido = inv.getArgument(0);
+            if (pedido.getId() == null) {
+                pedido.setId(idGenerador.getAndIncrement());
+            }
+            almacen.put(pedido.getId(), pedido);
+            return pedido;
+        });
+        lenient().when(repository.findById(anyLong()))
+                .thenAnswer(inv -> Optional.ofNullable(almacen.get((Long) inv.getArgument(0))));
+        lenient().when(repository.findAll()).thenAnswer(inv -> new ArrayList<>(almacen.values()));
+
         mesaDisponible = Mesa.builder().id(1L).numero(1).capacidad(4)
                 .estado(EstadoMesa.DISPONIBLE).cuentaAbierta(false).build();
         platoDisponible = Plato.builder().id(1L).nombre("Bandeja Paisa")
@@ -100,6 +126,12 @@ class PedidoServiceImplTest {
                 .when(validator).validarPlatoDisponible(any());
 
         assertThrows(ReglaDeNegocioException.class, () -> service.crear(pedidoConUnItem()));
+    }
+
+    @Test
+    @DisplayName("obtenerPorId - ID inexistente lanza RecursoNoEncontradoException")
+    void obtenerPorId_noExiste_lanzaExcepcion() {
+        assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerPorId(99L));
     }
 
     @Test
@@ -154,13 +186,6 @@ class PedidoServiceImplTest {
 
         assertThrows(EstadoInvalidoException.class,
                 () -> service.cambiarEstado(creado.getId(), EstadoPedido.ENTREGADO));
-    }
-
-    @Test
-    @DisplayName("obtenerPorId - ID inexistente lanza RecursoNoEncontradoException")
-    void obtenerPorId_noExiste_lanzaExcepcion() {
-        assertThrows(com.restaurante.exception.RecursoNoEncontradoException.class,
-                () -> service.obtenerPorId(99L));
     }
 
     @Test

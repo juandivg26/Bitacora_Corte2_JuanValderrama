@@ -5,13 +5,21 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,16 +32,42 @@ import com.restaurante.exception.EstadoInvalidoException;
 import com.restaurante.exception.RecursoNoEncontradoException;
 import com.restaurante.model.domain.EstadoMesa;
 import com.restaurante.model.domain.Mesa;
+import com.restaurante.repository.IMesaRepository;
 import com.restaurante.validator.IMesaValidator;
 
 @ExtendWith(MockitoExtension.class)
 class MesaServiceImplTest {
 
     @Mock
+    private IMesaRepository repository;
+
+    @Mock
     private IMesaValidator validator;
 
     @InjectMocks
     private MesaServiceImpl service;
+
+    private final Map<Long, Mesa> almacen = new HashMap<>();
+    private final AtomicLong idGenerador = new AtomicLong(1);
+
+    @BeforeEach
+    void setUp() {
+        almacen.clear();
+        idGenerador.set(1);
+        lenient().when(repository.save(any())).thenAnswer(inv -> {
+            Mesa mesa = inv.getArgument(0);
+            if (mesa.getId() == null) {
+                mesa.setId(idGenerador.getAndIncrement());
+            }
+            almacen.put(mesa.getId(), mesa);
+            return mesa;
+        });
+        lenient().when(repository.findById(anyLong()))
+                .thenAnswer(inv -> Optional.ofNullable(almacen.get((Long) inv.getArgument(0))));
+        lenient().when(repository.findAll()).thenAnswer(inv -> new ArrayList<>(almacen.values()));
+        lenient().doAnswer(inv -> almacen.remove((Long) inv.getArgument(0)))
+                .when(repository).deleteById(anyLong());
+    }
 
     private Mesa mesaBase() {
         return Mesa.builder().numero(1).capacidad(4)

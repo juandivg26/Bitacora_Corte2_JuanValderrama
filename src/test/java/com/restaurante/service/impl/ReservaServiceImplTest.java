@@ -5,12 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,15 +28,20 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.restaurante.exception.EstadoInvalidoException;
+import com.restaurante.exception.RecursoNoEncontradoException;
 import com.restaurante.exception.ReglaDeNegocioException;
 import com.restaurante.model.domain.EstadoMesa;
 import com.restaurante.model.domain.Mesa;
 import com.restaurante.model.domain.Reserva;
+import com.restaurante.repository.IReservaRepository;
 import com.restaurante.service.IMesaService;
 import com.restaurante.validator.IReservaValidator;
 
 @ExtendWith(MockitoExtension.class)
 class ReservaServiceImplTest {
+
+    @Mock
+    private IReservaRepository repository;
 
     @Mock
     private IMesaService mesaService;
@@ -40,10 +52,27 @@ class ReservaServiceImplTest {
     @InjectMocks
     private ReservaServiceImpl service;
 
+    private final Map<Long, Reserva> almacen = new HashMap<>();
+    private final AtomicLong idGenerador = new AtomicLong(1);
+
     private Mesa mesaDisponible;
 
     @BeforeEach
     void setUp() {
+        almacen.clear();
+        idGenerador.set(1);
+        lenient().when(repository.save(any())).thenAnswer(inv -> {
+            Reserva reserva = inv.getArgument(0);
+            if (reserva.getId() == null) {
+                reserva.setId(idGenerador.getAndIncrement());
+            }
+            almacen.put(reserva.getId(), reserva);
+            return reserva;
+        });
+        lenient().when(repository.findById(anyLong()))
+                .thenAnswer(inv -> Optional.ofNullable(almacen.get((Long) inv.getArgument(0))));
+        lenient().when(repository.findAll()).thenAnswer(inv -> new ArrayList<>(almacen.values()));
+
         mesaDisponible = Mesa.builder().id(1L).numero(1).capacidad(4)
                 .estado(EstadoMesa.DISPONIBLE).cuentaAbierta(false).build();
     }
@@ -78,8 +107,7 @@ class ReservaServiceImplTest {
     @Test
     @DisplayName("obtenerPorId - ID inexistente lanza RecursoNoEncontradoException")
     void obtenerPorId_noExiste_lanzaExcepcion() {
-        assertThrows(com.restaurante.exception.RecursoNoEncontradoException.class,
-                () -> service.obtenerPorId(99L));
+        assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerPorId(99L));
     }
 
     @Test
