@@ -1,5 +1,7 @@
 package com.restaurante.model.domain;
 
+import com.restaurante.util.CalculoUtils;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +20,6 @@ public class ItemPedido {
     private Integer cantidad;
 
     public Double subtotal() {
-        return precioCongelado * cantidad;
+        return CalculoUtils.subtotal(precioCongelado, cantidad);
     }
 }

@@ -15,5 +15,6 @@ public class PlatoResponseDTO {
     private String nombre;
     private Double precio;
     private String categoria;
+    private String descripcion;
     private Boolean disponible;
 }

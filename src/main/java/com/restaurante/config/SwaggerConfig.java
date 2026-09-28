@@ -13,8 +13,10 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("API Restaurante - DOSW")
-                        .description("API REST del restaurante (comida rápida) - Bitácora Corte 2, sin persistencia")
+                        .title("American Bites - API Restaurante (DOSW)")
+                        .description("API REST del restaurante de comida rápida. "
+                                + "Persistencia híbrida: PostgreSQL (Spring Data JPA) para el núcleo "
+                                + "y MongoDB para el log de eventos de pedidos. Bitácora Corte 2 (S7-S9).")
                         .version("v1.0"));
     }
 }

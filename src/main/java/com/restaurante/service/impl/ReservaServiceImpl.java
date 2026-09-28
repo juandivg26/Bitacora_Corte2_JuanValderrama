@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.restaurante.exception.RecursoNoEncontradoException;
 import com.restaurante.mapper.ReservaEntityMapper;
@@ -15,6 +16,7 @@ import com.restaurante.model.entity.ReservaEntity;
 import com.restaurante.repository.IReservaRepository;
 import com.restaurante.service.IMesaService;
 import com.restaurante.service.IReservaService;
+import com.restaurante.util.FechaUtils;
 import com.restaurante.util.UuidV7Generator;
 import com.restaurante.validator.IReservaValidator;
 
@@ -58,10 +60,16 @@ public class ReservaServiceImpl implements IReservaService {
     }
 
     @Override
+    @Transactional
     public Reserva crear(Reserva reserva) {
         Mesa mesa = mesaService.obtenerPorId(reserva.getIdMesa());
         validator.validarMesaDisponibleParaReserva(mesa);
         validator.validarFechaFutura(reserva.getFechaHora());
+
+        List<Reserva> reservasDeLaMesa = repository.findByIdMesa(reserva.getIdMesa()).stream()
+                .map(entityMapper::toDomain)
+                .toList();
+        validator.validarSinSolapamiento(reserva.getIdMesa(), reserva.getFechaHora(), reservasDeLaMesa);
 
         reserva.setId(UuidV7Generator.generate());
         reserva.setCancelada(false);
@@ -76,6 +84,7 @@ public class ReservaServiceImpl implements IReservaService {
     }
 
     @Override
+    @Transactional
     public Reserva cancelar(UUID id) {
         Reserva reserva = obtenerPorId(id);
         validator.validarPuedeModificarse(reserva);
@@ -93,6 +102,7 @@ public class ReservaServiceImpl implements IReservaService {
     }
 
     @Override
+    @Transactional
     public Reserva reprogramar(UUID id, LocalDateTime nuevaFechaHora) {
         Reserva reserva = obtenerPorId(id);
         validator.validarPuedeModificarse(reserva);
@@ -102,7 +112,7 @@ public class ReservaServiceImpl implements IReservaService {
         ReservaEntity actualizado = repository.save(entityMapper.toEntity(reserva));
         Reserva resultado = entityMapper.toDomain(actualizado);
         
-        log.info("Reserva reprogramada: id={}, nuevaFecha={}", id, nuevaFechaHora);
+        log.info("Reserva reprogramada: id={}, nuevaFecha={}", id, FechaUtils.formatearIso(nuevaFechaHora));
         return resultado;
     }
 }

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.Hibernate;
@@ -18,6 +19,7 @@ import com.restaurante.model.domain.EstadoCuenta;
 import com.restaurante.model.domain.EstadoMesa;
 import com.restaurante.model.domain.EstadoPedido;
 import com.restaurante.repository.ICuentaRepository;
+import com.restaurante.repository.IItemPedidoRepository;
 import com.restaurante.repository.IMesaRepository;
 import com.restaurante.repository.IPedidoRepository;
 import com.restaurante.repository.IReservaRepository;
@@ -46,6 +48,9 @@ class PersistenciaRelacionesJpaTest {
 
     @Autowired
     private IReservaRepository reservaRepository;
+
+    @Autowired
+    private IItemPedidoRepository itemPedidoRepository;
 
     @Autowired
     private EntityManager em;
@@ -103,5 +108,44 @@ class PersistenciaRelacionesJpaTest {
                 .allMatch(c -> mesa.getId().equals(c.getIdMesa())));
         assertTrue(reservaRepository.findByIdMesa(mesa.getId()).stream()
                 .allMatch(r -> mesa.getId().equals(r.getIdMesa())));
+    }
+
+    /** Guarda un pedido con un unico item del plato indicado y lo deja en el estado dado. */
+    private void guardarPedidoConPlato(MesaEntity mesa, Long idPlato, EstadoPedido estado) {
+        PedidoEntity pedido = PedidoEntity.builder()
+                .id(UUID.randomUUID())
+                .mesa(mesa)
+                .idMesa(mesa.getId())
+                .estado(estado)
+                .timestamp(LocalDateTime.now())
+                .items(new ArrayList<>())
+                .build();
+        ItemPedidoEntity item = ItemPedidoEntity.builder()
+                .idPlato(idPlato)
+                .nombrePlato("Plato " + idPlato)
+                .precioCongelado(10000.0)
+                .cantidad(1)
+                .build();
+        item.setPedido(pedido);
+        pedido.getItems().add(item);
+        pedidoRepository.saveAndFlush(pedido);
+    }
+
+    @Test
+    @DisplayName("ItemPedido: la consulta de pedidos activos por plato funciona contra la base de datos")
+    void itemPedido_pedidosActivosPorPlato_funciona() {
+        MesaEntity mesa = mesaGuardada();
+        guardarPedidoConPlato(mesa, 1L, EstadoPedido.RECIBIDO);
+        guardarPedidoConPlato(mesa, 2L, EstadoPedido.ENTREGADO);
+        em.clear();
+
+        List<EstadoPedido> estadosFinales = List.of(EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO);
+
+        assertTrue(itemPedidoRepository.existsByIdPlatoAndPedidoEstadoNotIn(1L, estadosFinales),
+                "El plato 1 esta en un pedido RECIBIDO, cuenta como pedido activo");
+        assertFalse(itemPedidoRepository.existsByIdPlatoAndPedidoEstadoNotIn(2L, estadosFinales),
+                "El plato 2 solo esta en un pedido ENTREGADO, no hay pedidos activos");
+        assertFalse(itemPedidoRepository.existsByIdPlatoAndPedidoEstadoNotIn(99L, estadosFinales),
+                "Un plato sin items no tiene pedidos activos");
     }
 }

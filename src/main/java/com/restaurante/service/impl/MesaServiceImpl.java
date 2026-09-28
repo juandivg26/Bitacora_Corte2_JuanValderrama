@@ -3,6 +3,7 @@ package com.restaurante.service.impl;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.restaurante.exception.RecursoNoEncontradoException;
 import com.restaurante.mapper.MesaEntityMapper;
@@ -53,6 +54,7 @@ public class MesaServiceImpl implements IMesaService {
     }
 
     @Override
+    @Transactional
     public Mesa crear(Mesa mesa) {
         validator.validarNumeroUnico(mesa.getNumero());
         
@@ -67,6 +69,7 @@ public class MesaServiceImpl implements IMesaService {
     }
 
     @Override
+    @Transactional
     public Mesa cambiarEstado(Long id, EstadoMesa nuevoEstado) {
         Mesa mesa = obtenerPorId(id);
         validator.validarTransicionEstado(mesa, nuevoEstado);
@@ -78,6 +81,7 @@ public class MesaServiceImpl implements IMesaService {
     }
 
     @Override
+    @Transactional
     public Mesa abrirCuenta(Long idMesa) {
         Mesa mesa = obtenerPorId(idMesa);
         mesa.abrirCuenta();
@@ -89,6 +93,7 @@ public class MesaServiceImpl implements IMesaService {
     }
 
     @Override
+    @Transactional
     public Mesa cerrarCuenta(Long idMesa) {
         Mesa mesa = obtenerPorId(idMesa);
         mesa.cerrarCuenta();
@@ -100,6 +105,7 @@ public class MesaServiceImpl implements IMesaService {
     }
 
     @Override
+    @Transactional
     public void eliminar(Long id) {
         obtenerPorId(id);
         repository.deleteById(id);

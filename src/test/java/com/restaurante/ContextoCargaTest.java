@@ -1,8 +1,14 @@
 package com.restaurante;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+import org.springframework.transaction.PlatformTransactionManager;
 
 /**
  * Verifica que el contexto completo de Spring (controllers, services, validators,
@@ -23,9 +29,23 @@ import org.springframework.boot.test.context.SpringBootTest;
 })
 class ContextoCargaTest {
 
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private ApplicationContext applicationContext;
+
     @Test
     @DisplayName("El contexto de la aplicación carga correctamente")
     void contextLoads() {
         // Si el contexto no se puede crear (beans, mapeo JPA, etc.) esta prueba falla.
+    }
+
+    @Test
+    @DisplayName("Existe un único PlatformTransactionManager para que @Transactional funcione")
+    void existeUnUnicoTransactionManager() {
+        assertNotNull(transactionManager);
+        assertEquals(1, applicationContext.getBeansOfType(PlatformTransactionManager.class).size(),
+                "Con dos gestores de transacciones (JPA + Mongo) @Transactional fallaría en runtime");
     }
 }

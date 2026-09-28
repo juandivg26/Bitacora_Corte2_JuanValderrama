@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.restaurante.exception.RecursoNoEncontradoException;
 import com.restaurante.mapper.PedidoEntityMapper;
@@ -65,6 +66,7 @@ public class PedidoServiceImpl implements IPedidoService {
     }
 
     @Override
+    @Transactional
     public Pedido crear(Pedido pedido) {
         Mesa mesa = mesaService.obtenerPorId(pedido.getIdMesa());
         validator.validarMesaDisponible(mesa);
@@ -87,6 +89,7 @@ public class PedidoServiceImpl implements IPedidoService {
     }
 
     @Override
+    @Transactional
     public Pedido agregarItem(UUID idPedido, ItemPedido item) {
         Pedido pedido = obtenerPorId(idPedido);
         validator.validarPuedeModificarse(pedido);
@@ -101,6 +104,7 @@ public class PedidoServiceImpl implements IPedidoService {
     }
 
     @Override
+    @Transactional
     public Pedido cambiarEstado(UUID id, EstadoPedido nuevoEstado) {
         Pedido pedido = obtenerPorId(id);
         validator.validarTransicionEstado(pedido, nuevoEstado);
