@@ -17,5 +17,9 @@ public interface IMesaService {
 
     Mesa cambiarEstado(Long id, EstadoMesa nuevoEstado);
 
+    Mesa abrirCuenta(Long idMesa);
+
+    Mesa cerrarCuenta(Long idMesa);
+
     void eliminar(Long id);
 }

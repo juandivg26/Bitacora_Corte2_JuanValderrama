@@ -1,14 +1,14 @@
 package com.restaurante.service.impl;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.stereotype.Service;
 
 import com.restaurante.exception.RecursoNoEncontradoException;
+import com.restaurante.mapper.PlatoEntityMapper;
 import com.restaurante.model.domain.Plato;
+import com.restaurante.model.entity.PlatoEntity;
+import com.restaurante.repository.IPlatoRepository;
 import com.restaurante.service.IPlatoService;
 import com.restaurante.validator.IPlatoValidator;
 
@@ -20,60 +20,71 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PlatoServiceImpl implements IPlatoService {
 
-    private final Map<Long, Plato> platos = new ConcurrentHashMap<>();
-    private final AtomicLong contador = new AtomicLong(1);
+    private final IPlatoRepository repository;
+    private final PlatoEntityMapper entityMapper;
     private final IPlatoValidator validator;
 
     @Override
     public List<Plato> obtenerTodos() {
+        List<Plato> platos = repository.findAll().stream()
+                .map(entityMapper::toDomain)
+                .toList();
         log.info("Obteniendo todos los platos. Total: {}", platos.size());
-        return platos.values().stream().toList();
+        return platos;
     }
 
     @Override
     public List<Plato> obtenerDisponibles() {
-        return platos.values().stream()
+        return repository.findAll().stream()
+                .map(entityMapper::toDomain)
                 .filter(Plato::estaDisponible)
                 .toList();
     }
 
     @Override
     public List<Plato> obtenerPorCategoria(String categoria) {
-        return platos.values().stream()
-                .filter(p -> p.getCategoria().equalsIgnoreCase(categoria))
+        return repository.findAll().stream()
+                .map(entityMapper::toDomain)
+                .filter(plato -> plato.getCategoria().equalsIgnoreCase(categoria))
                 .toList();
     }
 
     @Override
     public Plato obtenerPorId(Long id) {
-        return platos.values().stream()
-                .filter(p -> p.getId().equals(id))
-                .findFirst()
+        PlatoEntity entity = repository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Plato no encontrado: id={}", id);
                     return new RecursoNoEncontradoException("Plato", id);
                 });
+        return entityMapper.toDomain(entity);
     }
 
     @Override
     public Plato crear(Plato plato) {
-        validator.validarNombreUnico(plato.getNombre(), platos.values());
-        plato.setId(contador.getAndIncrement());
-        platos.put(plato.getId(), plato);
-        log.info("Plato creado: id={}, nombre={}", plato.getId(), plato.getNombre());
-        return plato;
+        validator.validarNombreUnico(plato.getNombre());
+        plato.setDisponible(true);
+        PlatoEntity guardado = repository.save(entityMapper.toEntity(plato));
+        Plato resultado = entityMapper.toDomain(guardado);
+        log.info("Plato creado: id={}, nombre={}", resultado.getId(), resultado.getNombre());
+        return resultado;
     }
 
     @Override
     public Plato actualizar(Long id, Plato nuevosDatos) {
         Plato existente = obtenerPorId(id);
-        validator.validarNombreUnico(nuevosDatos.getNombre(),
-                platos.values().stream().filter(p -> !p.getId().equals(id)).toList());
+        boolean nombreCambiado = !existente.getNombre().equalsIgnoreCase(nuevosDatos.getNombre());
+        if (nombreCambiado) {
+            validator.validarNombreUnico(nuevosDatos.getNombre());
+        }
+
         existente.setNombre(nuevosDatos.getNombre());
         existente.setPrecio(nuevosDatos.getPrecio());
         existente.setCategoria(nuevosDatos.getCategoria());
+
+        PlatoEntity actualizado = repository.save(entityMapper.toEntity(existente));
+        Plato resultado = entityMapper.toDomain(actualizado);
         log.info("Plato actualizado: id={}", id);
-        return existente;
+        return resultado;
     }
 
     @Override
@@ -84,14 +95,17 @@ public class PlatoServiceImpl implements IPlatoService {
         } else {
             plato.desactivar();
         }
+
+        PlatoEntity actualizado = repository.save(entityMapper.toEntity(plato));
+        Plato resultado = entityMapper.toDomain(actualizado);
         log.info("Plato id={} -> disponible={}", id, disponible);
-        return plato;
+        return resultado;
     }
 
     @Override
     public void eliminar(Long id) {
         obtenerPorId(id);
-        platos.remove(id);
+        repository.deleteById(id);
         log.info("Plato eliminado: id={}", id);
     }
 }

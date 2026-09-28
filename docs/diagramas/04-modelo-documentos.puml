@@ -1,0 +1,51 @@
+@startuml
+title Modelo de Documentos (MongoDB) - Coleccion eventos_pedido
+hide circle
+skinparam shadowing false
+
+package "Opcion elegida: EMBEBIDO" {
+  entity "eventos_pedido" as doc {
+    _id : String (ObjectId)
+    idPedido : String (UUID v7)
+    idMesa : Long
+    tipo : String (CREACION / CAMBIO_ESTADO)
+    estadoAnterior : String
+    estadoNuevo : String
+    timestamp : Date
+    --
+    items : [ItemEvento] (embebido)
+  }
+
+  entity "ItemEvento" as item {
+    idPlato : Long
+    nombrePlato : String
+    precioCongelado : Double
+    cantidad : Integer
+  }
+}
+
+package "Alternativa descartada: REFERENCIADO" {
+  entity "eventos_pedido" as docRef {
+    _id : String
+    idPedido : String
+    idMesa : Long
+    tipo : String
+    estadoAnterior : String
+    estadoNuevo : String
+    timestamp : Date
+    itemsIds : [ObjectId] (referencias)
+  }
+
+  entity "items_evento" as itemRef {
+    _id : ObjectId
+    idEvento : String (referencia)
+    idPlato : Long
+    nombrePlato : String
+    precioCongelado : Double
+    cantidad : Integer
+  }
+}
+
+doc *-- "1..*" item : embebido (1 a pocos, se leen juntos)
+docRef ||..o{ itemRef : referencia (requiere varias consultas)
+@enduml

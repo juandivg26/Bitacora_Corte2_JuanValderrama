@@ -2,38 +2,40 @@ package com.restaurante.validator.impl;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.List;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.restaurante.exception.ConflictoException;
-import com.restaurante.model.domain.Plato;
+import com.restaurante.repository.IPlatoRepository;
 
+@ExtendWith(MockitoExtension.class)
 class PlatoValidatorImplTest {
 
-    private final PlatoValidatorImpl validator = new PlatoValidatorImpl();
+    @Mock
+    private IPlatoRepository platoRepository;
+
+    @InjectMocks
+    private PlatoValidatorImpl validator;
 
     @Test
     @DisplayName("validarNombreUnico - nombre nuevo no lanza excepción")
     void validarNombreUnico_nombreNuevo_noLanza() {
-        List<Plato> existentes = List.of(Plato.builder().nombre("Ajiaco").build());
+        when(platoRepository.existsByNombreIgnoreCase("Bandeja Paisa")).thenReturn(false);
 
-        assertDoesNotThrow(() -> validator.validarNombreUnico("Bandeja Paisa", existentes));
+        assertDoesNotThrow(() -> validator.validarNombreUnico("Bandeja Paisa"));
     }
 
     @Test
-    @DisplayName("validarNombreUnico - nombre duplicado (case-insensitive) lanza ConflictoException")
+    @DisplayName("validarNombreUnico - nombre duplicado lanza ConflictoException")
     void validarNombreUnico_nombreDuplicado_lanzaConflicto() {
-        List<Plato> existentes = List.of(Plato.builder().nombre("Ajiaco").build());
+        when(platoRepository.existsByNombreIgnoreCase("AJIACO")).thenReturn(true);
 
-        assertThrows(ConflictoException.class, () -> validator.validarNombreUnico("AJIACO", existentes));
-    }
-
-    @Test
-    @DisplayName("validarNombreUnico - lista vacía no lanza excepción")
-    void validarNombreUnico_listaVacia_noLanza() {
-        assertDoesNotThrow(() -> validator.validarNombreUnico("Ajiaco", List.of()));
+        assertThrows(ConflictoException.class, () -> validator.validarNombreUnico("AJIACO"));
     }
 }

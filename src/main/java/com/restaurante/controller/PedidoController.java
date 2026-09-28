@@ -1,6 +1,7 @@
 package com.restaurante.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,7 +57,7 @@ public class PedidoController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener pedido por ID")
-    public ResponseEntity<PedidoResponseDTO> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<PedidoResponseDTO> obtenerPorId(@PathVariable UUID id) {
         Pedido pedido = pedidoService.obtenerPorId(id);
         return ResponseEntity.ok(pedidoMapper.toResponse(pedido));
     }
@@ -72,7 +73,7 @@ public class PedidoController {
 
     @PostMapping("/{id}/items")
     @Operation(summary = "Agregar un ítem a un pedido existente")
-    public ResponseEntity<PedidoResponseDTO> agregarItem(@PathVariable Long id,
+    public ResponseEntity<PedidoResponseDTO> agregarItem(@PathVariable UUID id,
                                                           @RequestBody @Valid ItemPedidoRequestDTO dto) {
         ItemPedido item = itemPedidoMapper.toDomain(dto);
         Pedido actualizado = pedidoService.agregarItem(id, item);
@@ -81,7 +82,7 @@ public class PedidoController {
 
     @PatchMapping("/{id}/estado")
     @Operation(summary = "Cambiar el estado de un pedido")
-    public ResponseEntity<PedidoResponseDTO> cambiarEstado(@PathVariable Long id,
+    public ResponseEntity<PedidoResponseDTO> cambiarEstado(@PathVariable UUID id,
                                                             @RequestBody @Valid CambiarEstadoPedidoRequestDTO dto) {
         Pedido actualizado = pedidoService.cambiarEstado(id, dto.getEstado());
         return ResponseEntity.ok(pedidoMapper.toResponse(actualizado));

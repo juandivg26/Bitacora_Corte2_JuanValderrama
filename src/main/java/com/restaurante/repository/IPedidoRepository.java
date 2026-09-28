@@ -1,15 +1,13 @@
 package com.restaurante.repository;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
-import com.restaurante.model.domain.Pedido;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface IPedidoRepository {
+import com.restaurante.model.entity.PedidoEntity;
 
-    List<Pedido> findAll();
+public interface IPedidoRepository extends JpaRepository<PedidoEntity, UUID> {
 
-    Optional<Pedido> findById(Long id);
-
-    Pedido save(Pedido pedido);
+    List<PedidoEntity> findByIdMesa(Long idMesa);
 }

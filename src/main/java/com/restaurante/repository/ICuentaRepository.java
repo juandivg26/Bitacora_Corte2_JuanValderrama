@@ -1,15 +1,15 @@
 package com.restaurante.repository;
 
 import java.util.List;
-import java.util.Optional;
 
-import com.restaurante.model.domain.Cuenta;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ICuentaRepository {
+import com.restaurante.model.domain.EstadoCuenta;
+import com.restaurante.model.entity.CuentaEntity;
 
-    List<Cuenta> findAll();
+public interface ICuentaRepository extends JpaRepository<CuentaEntity, Long> {
 
-    Optional<Cuenta> findById(Long id);
-
-    Cuenta save(Cuenta cuenta);
+    List<CuentaEntity> findByIdMesa(Long idMesa);
+    
+    List<CuentaEntity> findByIdMesaAndEstadoNot(Long idMesa, EstadoCuenta estado);
 }

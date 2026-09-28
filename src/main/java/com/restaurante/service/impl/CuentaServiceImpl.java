@@ -2,18 +2,18 @@ package com.restaurante.service.impl;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.stereotype.Service;
 
 import com.restaurante.exception.RecursoNoEncontradoException;
+import com.restaurante.mapper.CuentaEntityMapper;
 import com.restaurante.model.domain.Cuenta;
 import com.restaurante.model.domain.EstadoCuenta;
+import com.restaurante.model.domain.EstadoPedido;
 import com.restaurante.model.domain.ItemPedido;
 import com.restaurante.model.domain.Mesa;
-import com.restaurante.model.domain.Pedido;
+import com.restaurante.model.entity.CuentaEntity;
+import com.restaurante.repository.ICuentaRepository;
 import com.restaurante.service.ICuentaService;
 import com.restaurante.service.IMesaService;
 import com.restaurante.service.IPedidoService;
@@ -27,37 +27,39 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CuentaServiceImpl implements ICuentaService {
 
-    private final Map<Long, Cuenta> cuentas = new ConcurrentHashMap<>();
-    private final AtomicLong contador = new AtomicLong(1);
-
+    private final ICuentaRepository repository;
+    private final CuentaEntityMapper entityMapper;
     private final IMesaService mesaService;
     private final IPedidoService pedidoService;
     private final ICuentaValidator validator;
 
     @Override
     public List<Cuenta> obtenerTodas() {
+        List<Cuenta> cuentas = repository.findAll().stream()
+                .map(entityMapper::toDomain)
+                .toList();
         log.info("Obteniendo todas las cuentas. Total: {}", cuentas.size());
-        return cuentas.values().stream().toList();
+        return cuentas;
     }
 
     @Override
     public Cuenta obtenerPorId(Long id) {
-        return cuentas.values().stream()
-                .filter(c -> c.getId().equals(id))
-                .findFirst()
+        CuentaEntity entity = repository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Cuenta no encontrada: id={}", id);
                     return new RecursoNoEncontradoException("Cuenta", id);
                 });
+        return entityMapper.toDomain(entity);
     }
 
     @Override
     public Cuenta obtenerPorMesa(Long idMesa) {
-        return cuentas.values().stream()
-                .filter(c -> c.getIdMesa().equals(idMesa))
+        List<CuentaEntity> cuentas = repository.findByIdMesa(idMesa);
+        CuentaEntity cuentaAbierta = cuentas.stream()
                 .filter(c -> c.getEstado() != EstadoCuenta.CERRADA)
                 .findFirst()
                 .orElseThrow(() -> new RecursoNoEncontradoException("Cuenta abierta para mesa", idMesa));
+        return entityMapper.toDomain(cuentaAbierta);
     }
 
     @Override
@@ -66,16 +68,19 @@ public class CuentaServiceImpl implements ICuentaService {
         validator.validarMesaSinCuentaAbierta(mesa);
 
         Cuenta cuenta = Cuenta.builder()
-                .id(contador.getAndIncrement())
                 .idMesa(idMesa)
                 .total(0.0)
                 .estado(EstadoCuenta.ABIERTA)
                 .fechaApertura(LocalDateTime.now())
                 .build();
-        cuentas.put(cuenta.getId(), cuenta);
-        mesa.abrirCuenta();
-        log.info("Cuenta abierta: id={}, idMesa={}", cuenta.getId(), idMesa);
-        return cuenta;
+        
+        CuentaEntity guardado = repository.save(entityMapper.toEntity(cuenta));
+        Cuenta resultado = entityMapper.toDomain(guardado);
+
+        // Persistir en la mesa: estado OCUPADA y cuentaAbierta = true
+        mesaService.abrirCuenta(idMesa);
+        log.info("Cuenta abierta: id={}, idMesa={}", resultado.getId(), idMesa);
+        return resultado;
     }
 
     @Override
@@ -84,12 +89,16 @@ public class CuentaServiceImpl implements ICuentaService {
         validator.validarTransicionEstado(cuenta, EstadoCuenta.EN_PAGO);
 
         List<ItemPedido> items = pedidoService.obtenerPorMesa(cuenta.getIdMesa()).stream()
+                .filter(pedido -> pedido.getEstado() != EstadoPedido.CANCELADO)
                 .flatMap(pedido -> pedido.getItems().stream())
                 .toList();
         cuenta.calcularTotal(items);
         cuenta.registrarPago();
-        log.info("Pago registrado: id={}, total={}", id, cuenta.getTotal());
-        return cuenta;
+        
+        CuentaEntity actualizado = repository.save(entityMapper.toEntity(cuenta));
+        Cuenta resultado = entityMapper.toDomain(actualizado);
+        log.info("Pago registrado: id={}, total={}", id, resultado.getTotal());
+        return resultado;
     }
 
     @Override
@@ -97,9 +106,13 @@ public class CuentaServiceImpl implements ICuentaService {
         Cuenta cuenta = obtenerPorId(id);
         validator.validarTransicionEstado(cuenta, EstadoCuenta.CERRADA);
         cuenta.cerrarCuenta();
-        Mesa mesa = mesaService.obtenerPorId(cuenta.getIdMesa());
-        mesa.cerrarCuenta();
+        
+        CuentaEntity actualizado = repository.save(entityMapper.toEntity(cuenta));
+        Cuenta resultado = entityMapper.toDomain(actualizado);
+
+        // Persistir en la mesa: estado DISPONIBLE y cuentaAbierta = false
+        mesaService.cerrarCuenta(cuenta.getIdMesa());
         log.info("Cuenta cerrada: id={}", id);
-        return cuenta;
+        return resultado;
     }
 }

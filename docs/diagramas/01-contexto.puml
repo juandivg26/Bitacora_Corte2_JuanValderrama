@@ -1,0 +1,35 @@
+@startuml
+title Diagrama de Contexto - American Bites (API REST de Restaurante)
+left to right direction
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor "Cliente" as cliente
+actor "Mesero" as mesero
+actor "Cocinero" as cocinero
+actor "Cajero" as cajero
+actor "Administrador" as admin
+
+rectangle "American Bites - API REST" as sistema {
+  component "Menu\n(carta del cliente)" as menu
+  component "Platos\n(administracion de carta)" as platos
+  component "Mesas" as mesas
+  component "Pedidos" as pedidos
+  component "Cuentas" as cuentas
+  component "Reservas" as reservas
+}
+
+database "PostgreSQL\n(american_bites)" as bd
+
+cliente --> menu : Consulta la carta
+cliente --> reservas : Reserva una mesa
+mesero --> pedidos : Toma pedidos
+mesero --> mesas : Gestiona mesas
+mesero --> cuentas : Abre la cuenta de la mesa
+cocinero --> pedidos : Avanza el estado del pedido
+cajero --> cuentas : Registra el pago y cierra la cuenta
+cajero --> pedidos : Consulta pedidos
+admin --> platos : Administra la carta
+admin --> mesas : Administra las mesas
+sistema --> bd : Persiste (Spring Data JPA)
+@enduml

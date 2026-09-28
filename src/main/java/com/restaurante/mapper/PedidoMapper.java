@@ -13,7 +13,7 @@ import com.restaurante.model.dto.response.PedidoResponseDTO;
 public interface PedidoMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "estado", constant = "RECIBIDO")
+    @Mapping(target = "estado", ignore = true)
     @Mapping(target = "timestamp", ignore = true)
     Pedido toDomain(PedidoRequestDTO dto);
 

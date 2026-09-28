@@ -1,6 +1,7 @@
 package com.restaurante.controller;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,7 +53,7 @@ public class ReservaController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener reserva por ID")
-    public ResponseEntity<ReservaResponseDTO> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<ReservaResponseDTO> obtenerPorId(@PathVariable UUID id) {
         Reserva reserva = reservaService.obtenerPorId(id);
         return ResponseEntity.ok(reservaMapper.toResponse(reserva));
     }
@@ -68,14 +69,14 @@ public class ReservaController {
 
     @PatchMapping("/{id}/cancelar")
     @Operation(summary = "Cancelar una reserva")
-    public ResponseEntity<ReservaResponseDTO> cancelar(@PathVariable Long id) {
+    public ResponseEntity<ReservaResponseDTO> cancelar(@PathVariable UUID id) {
         Reserva reserva = reservaService.cancelar(id);
         return ResponseEntity.ok(reservaMapper.toResponse(reserva));
     }
 
     @PatchMapping("/{id}/reprogramar")
     @Operation(summary = "Reprogramar una reserva")
-    public ResponseEntity<ReservaResponseDTO> reprogramar(@PathVariable Long id,
+    public ResponseEntity<ReservaResponseDTO> reprogramar(@PathVariable UUID id,
                                                            @RequestBody @Valid ReprogramarReservaRequestDTO dto) {
         Reserva reserva = reservaService.reprogramar(id, dto.getFechaHora());
         return ResponseEntity.ok(reservaMapper.toResponse(reserva));

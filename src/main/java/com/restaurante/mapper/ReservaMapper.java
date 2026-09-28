@@ -13,7 +13,7 @@ import com.restaurante.model.dto.response.ReservaResponseDTO;
 public interface ReservaMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "cancelada", constant = "false")
+    @Mapping(target = "cancelada", ignore = true)
     Reserva toDomain(ReservaRequestDTO dto);
 
     @Mapping(target = "vigente", expression = "java(reserva.estaVigente())")

@@ -1,15 +1,15 @@
 package com.restaurante.service.impl;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.stereotype.Service;
 
 import com.restaurante.exception.RecursoNoEncontradoException;
+import com.restaurante.mapper.MesaEntityMapper;
 import com.restaurante.model.domain.EstadoMesa;
 import com.restaurante.model.domain.Mesa;
+import com.restaurante.model.entity.MesaEntity;
+import com.restaurante.repository.IMesaRepository;
 import com.restaurante.service.IMesaService;
 import com.restaurante.validator.IMesaValidator;
 
@@ -21,41 +21,49 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class MesaServiceImpl implements IMesaService {
 
-    private final Map<Long, Mesa> mesas = new ConcurrentHashMap<>();
-    private final AtomicLong contador = new AtomicLong(1);
+    private final IMesaRepository repository;
+    private final MesaEntityMapper entityMapper;
     private final IMesaValidator validator;
 
     @Override
     public List<Mesa> obtenerTodas() {
+        List<Mesa> mesas = repository.findAll().stream()
+                .map(entityMapper::toDomain)
+                .toList();
         log.info("Obteniendo todas las mesas. Total: {}", mesas.size());
-        return mesas.values().stream().toList();
+        return mesas;
     }
 
     @Override
     public List<Mesa> obtenerDisponibles() {
-        return mesas.values().stream()
+        return repository.findAll().stream()
+                .map(entityMapper::toDomain)
                 .filter(Mesa::estaDisponible)
                 .toList();
     }
 
     @Override
     public Mesa obtenerPorId(Long id) {
-        return mesas.values().stream()
-                .filter(m -> m.getId().equals(id))
-                .findFirst()
+        MesaEntity entity = repository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Mesa no encontrada: id={}", id);
                     return new RecursoNoEncontradoException("Mesa", id);
                 });
+        return entityMapper.toDomain(entity);
     }
 
     @Override
     public Mesa crear(Mesa mesa) {
-        validator.validarNumeroUnico(mesa.getNumero(), mesas.values());
-        mesa.setId(contador.getAndIncrement());
-        mesas.put(mesa.getId(), mesa);
-        log.info("Mesa creada: id={}, numero={}", mesa.getId(), mesa.getNumero());
-        return mesa;
+        validator.validarNumeroUnico(mesa.getNumero());
+        
+        // Inicializar valores por defecto
+        mesa.setEstado(EstadoMesa.DISPONIBLE);
+        mesa.setCuentaAbierta(false);
+        
+        MesaEntity guardado = repository.save(entityMapper.toEntity(mesa));
+        Mesa resultado = entityMapper.toDomain(guardado);
+        log.info("Mesa creada: id={}, numero={}", resultado.getId(), resultado.getNumero());
+        return resultado;
     }
 
     @Override
@@ -63,14 +71,38 @@ public class MesaServiceImpl implements IMesaService {
         Mesa mesa = obtenerPorId(id);
         validator.validarTransicionEstado(mesa, nuevoEstado);
         mesa.setEstado(nuevoEstado);
+        MesaEntity actualizado = repository.save(entityMapper.toEntity(mesa));
+        Mesa resultado = entityMapper.toDomain(actualizado);
         log.info("Mesa id={} -> estado={}", id, nuevoEstado);
-        return mesa;
+        return resultado;
+    }
+
+    @Override
+    public Mesa abrirCuenta(Long idMesa) {
+        Mesa mesa = obtenerPorId(idMesa);
+        mesa.abrirCuenta();
+        MesaEntity actualizado = repository.save(entityMapper.toEntity(mesa));
+        Mesa resultado = entityMapper.toDomain(actualizado);
+        log.info("Mesa id={} -> estado={}, cuentaAbierta={}",
+                idMesa, resultado.getEstado(), resultado.getCuentaAbierta());
+        return resultado;
+    }
+
+    @Override
+    public Mesa cerrarCuenta(Long idMesa) {
+        Mesa mesa = obtenerPorId(idMesa);
+        mesa.cerrarCuenta();
+        MesaEntity actualizado = repository.save(entityMapper.toEntity(mesa));
+        Mesa resultado = entityMapper.toDomain(actualizado);
+        log.info("Mesa id={} -> estado={}, cuentaAbierta={}",
+                idMesa, resultado.getEstado(), resultado.getCuentaAbierta());
+        return resultado;
     }
 
     @Override
     public void eliminar(Long id) {
         obtenerPorId(id);
-        mesas.remove(id);
+        repository.deleteById(id);
         log.info("Mesa eliminada: id={}", id);
     }
 }
