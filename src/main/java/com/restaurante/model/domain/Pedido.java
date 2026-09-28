@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.restaurante.util.CalculoUtils;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -40,8 +42,11 @@ public class Pedido {
     }
 
     public Double total() {
-        return items.stream()
-                .mapToDouble(ItemPedido::subtotal)
-                .sum();
+        if (items == null || items.isEmpty()) {
+            return 0.0;
+        }
+        return CalculoUtils.sumar(items.stream()
+                .map(ItemPedido::subtotal)
+                .toList());
     }
 }

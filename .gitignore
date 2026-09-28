@@ -19,5 +19,8 @@ Thumbs.db
 *.log
 *.tmp
 
+# Credenciales locales (NO versionar)
+.env.properties
+
 # Herramientas opcionales / Scripts temporales
 .github/modernize/

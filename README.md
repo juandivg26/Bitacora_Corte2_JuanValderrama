@@ -46,17 +46,19 @@ El proyecto está construido en **Java 21 + Spring Boot**, siguiendo una arquite
 | `repository` | Interfaces Spring Data JPA (un repositorio por entidad) |
 | `service` / `service/impl` | Lógica de negocio y orquestación (invoca repositorios + validadores) |
 | `validator` / `validator/impl` | Reglas de negocio y validaciones (duplicados, transiciones de estado, etc.) |
-| `controller` | Endpoints REST |
+| `controller` | Endpoints REST (solo las anotaciones de Spring MVC) |
+| `controller/docs` | Contratos documentados de la API: interfaces con las anotaciones de Swagger (`@Tag`, `@Operation`, `@ApiResponse`). Los controllers las implementan y quedan limpios |
 | `exception` | Excepciones de negocio + `GlobalExceptionHandler` |
 | `config` | Swagger y CORS |
-| `util` | Utilidades compartidas (p. ej. `UuidV7Generator`) |
+| `util` | Utilidades compartidas (`UuidV7Generator`, `FechaUtils`, `CalculoUtils`, `TextoUtils`) |
 
 ### 3.1 Estructura de paquetes
 
 ```text
 src/main/java/com/restaurante/
 ├── RestauranteApplication.java
-├── controller/        → endpoints REST (Plato, Menu, Mesa, Pedido, Cuenta, Reserva)
+├── controller/        → endpoints REST (Plato, Menu, Mesa, Pedido, Cuenta, Reserva, EventoPedido)
+│   └── docs/          → interfaces con la documentacion de Swagger
 ├── service/           → interfaces de servicio
 │   └── impl/          → implementaciones (@Service)
 ├── repository/        → interfaces Spring Data JPA (una por entidad)
@@ -71,8 +73,17 @@ src/main/java/com/restaurante/
 │   └── impl/
 ├── exception/         → excepciones + GlobalExceptionHandler
 ├── config/            → Swagger y CORS
-└── util/              → utilidades
+└── util/              → utilidades (UuidV7Generator, FechaUtils, CalculoUtils, TextoUtils)
 ```
+
+### 3.2 Utilidades compartidas (`util/`)
+
+| Utilidad | Métodos | Usada en |
+|---|---|---|
+| `FechaUtils` | `esFechaFutura`, `formatearFecha`, `formatearIso`, `seSolapan` | `ReservaValidatorImpl` (fecha futura y solapamiento de reservas) |
+| `CalculoUtils` | `subtotal`, `sumar`, `redondear`, `aplicarDescuento` | `ItemPedido.subtotal()`, `Pedido.total()`, `Cuenta.calcularTotal()` |
+| `TextoUtils` | `normalizar`, `sonIgualesNormalizados`, `normalizarNombre`, `esVacio` | `PlatoServiceImpl` (filtro por categoría y nombre), `PlatoValidatorImpl` |
+| `UuidV7Generator` | `generate()` | `PedidoServiceImpl`, `ReservaServiceImpl` |
 
 ---
 
@@ -87,6 +98,9 @@ src/main/java/com/restaurante/
 - Un plato con nombre duplicado y una mesa con número duplicado se rechazan con **409**.
 - Al cerrar la cuenta, la mesa queda `DISPONIBLE` y con `cuentaAbierta = false`.
 - Una reserva cancelada no puede modificarse ni reprogramarse.
+- Una mesa no puede tener dos reservas vigentes que se solapen (cada reserva ocupa un bloque de 2 horas).
+- Un plato con **pedidos activos** (pedidos que no están `ENTREGADOS` ni `CANCELADOS`) **no se puede eliminar**: responde **409**.
+- Un pedido se puede cancelar en `RECIBIDO` y en `EN_PREPARACION`, pero no cuando ya está `LISTO` o `ENTREGADO` (decisión documentada en `EstadoPedido`).
 
 ---
 
@@ -102,13 +116,14 @@ src/main/java/com/restaurante/
 | POST | `/` | Crear un plato |
 | PUT | `/{id}` | Actualizar un plato |
 | PATCH | `/{id}/disponible?disponible=` | Cambiar disponibilidad |
-| DELETE | `/{id}` | Eliminar un plato |
+| DELETE | `/{id}` | Eliminar un plato (409 si tiene pedidos activos) |
 
 ### 5.2 Menú (cliente) — `/api/v1/menu`
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/` | Ver el menú (solo platos disponibles) |
-| GET | `/categoria/{categoria}` | Ver el menú por categoría (solo disponibles) |
+| GET | `/{id}` | Ver el detalle de un plato del menú (404 si el plato no existe o está desactivado) |
+| GET | `/categoria/{categoria}` | Ver el menú por categoría (solo disponibles; ignora mayúsculas y acentos) |
 
 ### 5.3 Mesas — `/api/v1/mesas`
 | Método | Ruta | Descripción |
@@ -156,22 +171,55 @@ src/main/java/com/restaurante/
 | GET | `/` | Listar todos los eventos (del más reciente al más antiguo) |
 | GET | `/pedido/{idPedido}` | Listar los eventos de un pedido |
 
+### 5.8 Códigos de error
+
+Todas las respuestas de error usan el mismo cuerpo (`ErrorResponseDTO`):
+
+```json
+{
+  "timestamp": "2026-09-28T02:51:31.69",
+  "status": 422,
+  "error": "Unprocessable Entity",
+  "message": "No se puede pasar el pedido de RECIBIDO a ENTREGADO",
+  "path": "/api/v1/pedidos/01a0e6ff-367e-756a-a2a1-2329435c8866/estado"
+}
+```
+
+| Código | Cuándo se devuelve | Ejemplo |
+|---|---|---|
+| **400** Bad Request | El request no cumple el contrato: body vacío, campo inválido, JSON mal formado, tipo de dato incorrecto, parámetro obligatorio faltante | `POST /platos` con `{}` |
+| **404** Not Found | El recurso no existe (o la ruta no está mapeada) | `GET /platos/999` |
+| **405** Method Not Allowed | El verbo HTTP no está soportado en esa ruta | `PUT /mesas/1` |
+| **409** Conflict | Conflicto con el estado actual del recurso | nombre de plato duplicado; eliminar un plato con pedidos activos |
+| **422** Unprocessable Entity | El request está bien formado pero viola una regla de negocio | transición de estado inválida |
+| **500** Internal Server Error | Falla inesperada del servidor | — |
+
+> `GlobalExceptionHandler` hereda de `ResponseEntityExceptionHandler`, por lo que los errores propios de
+> Spring MVC (JSON ilegible, tipo de parámetro inválido, parámetro faltante, verbo no soportado) se
+> traducen a 400/405 en vez de caer en el 500 genérico.
+
 ---
 
 ## 6. Persistencia híbrida (PostgreSQL + MongoDB)
 
 ### 6.1 Configuración
-`application.properties` contiene la configuración de conexión.
+`application.properties` contiene la configuración de conexión. **Las credenciales no se versionan**:
+se leen de variables de entorno con valores por defecto, y el proyecto carga además un archivo local
+`.env.properties` (ignorado por git) para el desarrollo.
 
-Ejemplo (ajusta según tu entorno):
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/american_bites
-spring.datasource.username=postgres
-spring.datasource.password=TU_PASSWORD
+# application.properties (versionado, sin credenciales)
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/american_bites}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:}
+spring.jpa.hibernate.ddl-auto=${JPA_DDL_AUTO:update}
 
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
+# .env.properties (NO versionado)
+DB_PASSWORD=tu_password
 ```
+
+También puedes exportar las variables `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `MONGODB_URI`,
+`JPA_DDL_AUTO` y `JPA_SHOW_SQL` directamente en el entorno.
 
 ### 6.2 Ejecución de migración de esquema
 Se usa `spring.jpa.hibernate.ddl-auto=update`, por lo que Hibernate crea/actualiza las tablas automáticamente al iniciar la app.
@@ -215,6 +263,40 @@ El proyecto usa **persistencia híbrida**. El núcleo del restaurante (platos, m
 
 Los eventos se registran automáticamente al **crear un pedido** y al **cambiar su estado**. El registro es **no crítico**: si MongoDB no está disponible, se registra un `WARN` y el flujo del pedido continúa con normalidad.
 
+### 6.6 Diagramas
+
+Fuente editable (`.puml`) y render (`.png`) en [`docs/diagramas/`](docs/diagramas):
+
+| Archivo | Contenido |
+|---|---|
+| `01-contexto` | Diagrama de contexto (actores y sistema) |
+| `02-modelo-entidad-relacion` | Modelo Entidad-Relación de PostgreSQL |
+| `03-normalizacion` | Justificación de 1FN, 2FN y 3FN |
+| `04-modelo-documentos` | Modelo de documentos de MongoDB (embebido vs referenciado) |
+| `05-modelo-clases` | Modelo de clases del dominio y enums de estado |
+
+### 6.7 Transacciones: ACID en PostgreSQL, BASE en MongoDB
+
+Los casos de uso que escriben en **más de una tabla** están anotados con `@Transactional`, para que el
+conjunto se confirme o se revierta como una sola unidad (atomicidad):
+
+| Flujo | Escrituras que deben ser atómicas |
+|---|---|
+| `PedidoServiceImpl.crear` | inserta el pedido con sus ítems **y** deja la mesa `OCUPADA` |
+| `CuentaServiceImpl.abrir` | inserta la cuenta **y** marca la mesa con `cuentaAbierta = true` |
+| `CuentaServiceImpl.cerrar` | cierra la cuenta **y** libera la mesa |
+| `ReservaServiceImpl.crear` / `cancelar` | guarda la reserva **y** cambia el estado de la mesa |
+| `PlatoServiceImpl.eliminar` | valida que no haya pedidos activos **y** borra el plato |
+
+El registro de eventos en MongoDB es **best effort**: se ejecuta dentro del flujo pero envuelto en
+`try/catch` (es un dato no crítico) y **no forma parte de la transacción relacional**. MongoDB no
+garantiza ACID como PostgreSQL, y es justo el caso que cubre el modelo **B.A.S.E.**: el log es
+eventualmente consistente y su fallo no debe tumbar la operación del restaurante.
+
+> La prueba `ContextoCargaTest.existeUnUnicoTransactionManager` garantiza que exista **un solo**
+> `PlatformTransactionManager`: con JPA y MongoDB conviviendo podrían registrarse dos y `@Transactional`
+> fallaría en runtime.
+
 ---
 
 ## 7. Cómo ejecutar el proyecto
@@ -251,6 +333,25 @@ La batería incluye:
 - **`ContextoCargaTest`**: verifica que el contexto completo de Spring (beans, mappers y mapeo JPA) arranca correctamente.
 
 - Reporte de JaCoCo: `target/site/jacoco/index.html`
+
+### 8.1 Análisis estático con SonarQube
+
+El proyecto ya trae el plugin `sonar-maven-plugin` y el archivo [`sonar-project.properties`](sonar-project.properties)
+configurado (fuentes, pruebas, binarios, clases de test y las rutas de cobertura de JaCoCo).
+
+```bash
+# 1) compila y ejecuta las pruebas (genera target/site/jacoco/jacoco.xml)
+mvn clean test
+
+# 2) lanza el analisis
+#    SonarCloud
+mvn sonar:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=TU_ORG -Dsonar.token=TU_TOKEN
+#    SonarQube local (por ejemplo con Docker en http://localhost:9000)
+mvn sonar:sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=TU_TOKEN
+```
+
+> El token se genera en *My Account → Security* de SonarQube/SonarCloud. Guarda el dashboard o
+> el reporte de `target/sonar/` como evidencia de la entrega.
 
 ---
 
@@ -341,39 +442,4 @@ SELECT * FROM reservas;
 
 ---
 
-## 10. Nota sobre el README (actualización importante)
-Este README fue actualizado para reflejar que el proyecto **sí usa PostgreSQL** como persistencia real (ya no es solo en memoria).
-
----
-
-## 11. Roles y permisos (RBAC) — S09
-
-Se definieron los roles del restaurante y qué puede hacer cada uno. El detalle completo está en
-[`docs/Roles_AmericanBites.xlsx`](docs/Roles_AmericanBites.xlsx) con 4 hojas:
-
-| Hoja | Contenido |
-|---|---|
-| **Roles** | Descripción de cada rol y su alcance general. |
-| **Matriz de permisos** | Las 34 funcionalidades (con su endpoint) frente a los 5 roles, con Sí/No. |
-| **Detalle por Rol** | Para cada rol: qué PUEDE y qué NO puede hacer. |
-| **Reglas de negocio por rol** | Reglas transversales (quién cobra, quién cambia estados, etc.). |
-
-### 11.1 Roles del restaurante
-
-| Rol | Descripción |
-|---|---|
-| **ADMINISTRADOR** | Gerente/dueño. Control total del sistema. |
-| **MESERO** | Toma pedidos y gestiona mesas, cuentas y reservas. No administra la carta. |
-| **COCINERO** | Consulta pedidos y avanza su estado (EN_PREPARACION / LISTO). |
-| **CAJERO** | Registra el pago y cierra las cuentas de las mesas. |
-| **CLIENTE** | Consulta el menú y gestiona sus propias reservas. |
-
-### 11.2 Resumen de permisos clave
-
-- **Crear / eliminar platos:** solo ADMINISTRADOR.
-- **Ver el menú:** todos los roles (el CLIENTE solo ve platos disponibles).
-- **Tomar pedidos (crear pedido / agregar ítems):** MESERO y ADMINISTRADOR.
-- **Cambiar estado de un pedido:** COCINERO solo a `EN_PREPARACION` y `LISTO`; MESERO/ADMIN todas las transiciones válidas.
-- **Registrar pago y cerrar cuenta:** CAJERO y ADMINISTRADOR. El MESERO abre la cuenta.
-- **Reservas:** MESERO/ADMIN gestionan todas; el CLIENTE solo las suyas.
 

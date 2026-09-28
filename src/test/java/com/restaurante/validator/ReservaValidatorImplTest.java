@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
@@ -56,5 +57,28 @@ class ReservaValidatorImplTest {
         Reserva reserva = Reserva.builder().id(UUID.randomUUID()).cancelada(true).build();
 
         assertThrows(EstadoInvalidoException.class, () -> validator.validarPuedeModificarse(reserva));
+    }
+
+    @Test
+    @DisplayName("validarSinSolapamiento - reserva vigente que se solapa lanza ReglaDeNegocioException")
+    void validarSinSolapamiento_reservaSolapada_lanzaExcepcion() {
+        LocalDateTime fecha = LocalDateTime.now().plusDays(2);
+        Reserva existente = Reserva.builder().id(UUID.randomUUID())
+                .fechaHora(fecha.plusMinutes(30)).cancelada(false).build();
+
+        assertThrows(ReglaDeNegocioException.class,
+                () -> validator.validarSinSolapamiento(1L, fecha, List.of(existente)));
+    }
+
+    @Test
+    @DisplayName("validarSinSolapamiento - reservas lejanas o canceladas no solapan")
+    void validarSinSolapamiento_sinConflicto_noLanza() {
+        LocalDateTime fecha = LocalDateTime.now().plusDays(2);
+        Reserva lejana = Reserva.builder().id(UUID.randomUUID())
+                .fechaHora(fecha.plusHours(5)).cancelada(false).build();
+        Reserva cancelada = Reserva.builder().id(UUID.randomUUID())
+                .fechaHora(fecha.plusMinutes(10)).cancelada(true).build();
+
+        assertDoesNotThrow(() -> validator.validarSinSolapamiento(1L, fecha, List.of(lejana, cancelada)));
     }
 }

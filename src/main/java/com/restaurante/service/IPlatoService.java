@@ -14,6 +14,12 @@ public interface IPlatoService {
 
     Plato obtenerPorId(Long id);
 
+    /**
+     * Igual que obtenerPorId, pero solo devuelve el plato si esta disponible
+     * (vista de menu para el cliente).
+     */
+    Plato obtenerDisponiblePorId(Long id);
+
     Plato crear(Plato plato);
 
     Plato actualizar(Long id, Plato nuevosDatos);

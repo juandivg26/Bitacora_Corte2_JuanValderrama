@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.restaurante.controller.docs.MesaApi;
 import com.restaurante.mapper.MesaMapper;
 import com.restaurante.model.domain.EstadoMesa;
 import com.restaurante.model.domain.Mesa;
@@ -21,8 +22,6 @@ import com.restaurante.model.dto.request.MesaRequestDTO;
 import com.restaurante.model.dto.response.MesaResponseDTO;
 import com.restaurante.service.IMesaService;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,36 +30,35 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/v1/mesas")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Mesas", description = "Gestión de las mesas del restaurante")
-public class MesaController {
+public class MesaController implements MesaApi {
 
     private final IMesaService mesaService;
     private final MesaMapper mesaMapper;
 
+    @Override
     @GetMapping
-    @Operation(summary = "Obtener todas las mesas")
     public ResponseEntity<List<MesaResponseDTO>> obtenerTodas() {
         log.info("GET /api/v1/mesas");
         List<Mesa> mesas = mesaService.obtenerTodas();
         return ResponseEntity.ok(mesaMapper.toResponseList(mesas));
     }
 
+    @Override
     @GetMapping("/disponibles")
-    @Operation(summary = "Obtener mesas disponibles")
     public ResponseEntity<List<MesaResponseDTO>> obtenerDisponibles() {
         List<Mesa> mesas = mesaService.obtenerDisponibles();
         return ResponseEntity.ok(mesaMapper.toResponseList(mesas));
     }
 
+    @Override
     @GetMapping("/{id}")
-    @Operation(summary = "Obtener mesa por ID")
     public ResponseEntity<MesaResponseDTO> obtenerPorId(@PathVariable Long id) {
         Mesa mesa = mesaService.obtenerPorId(id);
         return ResponseEntity.ok(mesaMapper.toResponse(mesa));
     }
 
+    @Override
     @PostMapping
-    @Operation(summary = "Crear una nueva mesa")
     public ResponseEntity<MesaResponseDTO> crear(@RequestBody @Valid MesaRequestDTO dto) {
         log.info("POST /api/v1/mesas - numero={}", dto.getNumero());
         Mesa mesa = mesaMapper.toDomain(dto);
@@ -68,16 +66,16 @@ public class MesaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(mesaMapper.toResponse(creada));
     }
 
+    @Override
     @PatchMapping("/{id}/estado")
-    @Operation(summary = "Cambiar el estado de una mesa")
     public ResponseEntity<MesaResponseDTO> cambiarEstado(@PathVariable Long id,
-                                                          @RequestParam EstadoMesa nuevoEstado) {
+                                                         @RequestParam EstadoMesa nuevoEstado) {
         Mesa actualizada = mesaService.cambiarEstado(id, nuevoEstado);
         return ResponseEntity.ok(mesaMapper.toResponse(actualizada));
     }
 
+    @Override
     @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar una mesa")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         mesaService.eliminar(id);
         return ResponseEntity.noContent().build();

@@ -33,6 +33,13 @@ public class PlatoEntity {
     @Column(nullable = false)
     private String categoria;
 
+    /**
+     * Descripcion de la carta. Es opcional (no NOT NULL) para que la columna se
+     * pueda agregar sin romper las filas ya existentes.
+     */
+    @Column(length = 255)
+    private String descripcion;
+
     @Column(nullable = false)
     private Boolean disponible;
 }

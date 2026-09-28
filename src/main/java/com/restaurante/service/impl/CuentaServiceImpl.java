@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.restaurante.exception.RecursoNoEncontradoException;
 import com.restaurante.mapper.CuentaEntityMapper;
@@ -63,6 +64,7 @@ public class CuentaServiceImpl implements ICuentaService {
     }
 
     @Override
+    @Transactional
     public Cuenta abrir(Long idMesa) {
         Mesa mesa = mesaService.obtenerPorId(idMesa);
         validator.validarMesaSinCuentaAbierta(mesa);
@@ -84,6 +86,7 @@ public class CuentaServiceImpl implements ICuentaService {
     }
 
     @Override
+    @Transactional
     public Cuenta registrarPago(Long id) {
         Cuenta cuenta = obtenerPorId(id);
         validator.validarTransicionEstado(cuenta, EstadoCuenta.EN_PAGO);
@@ -102,6 +105,7 @@ public class CuentaServiceImpl implements ICuentaService {
     }
 
     @Override
+    @Transactional
     public Cuenta cerrar(Long id) {
         Cuenta cuenta = obtenerPorId(id);
         validator.validarTransicionEstado(cuenta, EstadoCuenta.CERRADA);

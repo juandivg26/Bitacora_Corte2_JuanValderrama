@@ -114,6 +114,29 @@ class PlatoServiceImplTest {
     }
 
     @Test
+    @DisplayName("obtenerDisponiblePorId - plato disponible se devuelve (vista de menu)")
+    void obtenerDisponiblePorId_disponible_loDevuelve() {
+        PlatoEntity entity = platoEntity("Ajiaco", 20000.0, "SOPAS", true);
+        entity.setId(1L);
+        almacen.put(1L, entity);
+
+        Plato resultado = service.obtenerDisponiblePorId(1L);
+
+        assertEquals("Ajiaco", resultado.getNombre());
+        assertTrue(resultado.estaDisponible());
+    }
+
+    @Test
+    @DisplayName("obtenerDisponiblePorId - plato desactivado lanza RecursoNoEncontradoException")
+    void obtenerDisponiblePorId_desactivado_lanzaExcepcion() {
+        PlatoEntity entity = platoEntity("Ajiaco", 20000.0, "SOPAS", false);
+        entity.setId(1L);
+        almacen.put(1L, entity);
+
+        assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerDisponiblePorId(1L));
+    }
+
+    @Test
     @DisplayName("obtenerTodos - sin platos devuelve lista vacía")
     void obtenerTodos_sinPlatos_devuelveListaVacia() {
         List<Plato> resultado = service.obtenerTodos();
@@ -184,6 +207,20 @@ class PlatoServiceImplTest {
 
         service.eliminar(1L);
 
+        verify(validator, times(1)).validarSinPedidosActivos(1L);
         assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerPorId(1L));
+    }
+
+    @Test
+    @DisplayName("eliminar - plato con pedidos activos no se elimina")
+    void eliminar_conPedidosActivos_noElimina() {
+        PlatoEntity entity = platoEntity("Sopa", 15000.0, "ENTRADAS", true);
+        entity.setId(1L);
+        almacen.put(1L, entity);
+        org.mockito.Mockito.doThrow(new ConflictoException("tiene pedidos activos"))
+                .when(validator).validarSinPedidosActivos(1L);
+
+        assertThrows(ConflictoException.class, () -> service.eliminar(1L));
+        assertNotNull(almacen.get(1L), "El plato debe seguir existiendo");
     }
 }

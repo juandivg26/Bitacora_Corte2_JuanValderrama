@@ -24,4 +24,7 @@ public class PlatoRequestDTO {
 
     @NotBlank(message = "La categoría es obligatoria")
     private String categoria;
+
+    @Size(max = 255, message = "Máximo 255 caracteres")
+    private String descripcion;
 }

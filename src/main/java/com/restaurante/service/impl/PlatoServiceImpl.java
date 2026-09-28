@@ -3,6 +3,7 @@ package com.restaurante.service.impl;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.restaurante.exception.RecursoNoEncontradoException;
 import com.restaurante.mapper.PlatoEntityMapper;
@@ -10,6 +11,7 @@ import com.restaurante.model.domain.Plato;
 import com.restaurante.model.entity.PlatoEntity;
 import com.restaurante.repository.IPlatoRepository;
 import com.restaurante.service.IPlatoService;
+import com.restaurante.util.TextoUtils;
 import com.restaurante.validator.IPlatoValidator;
 
 import lombok.RequiredArgsConstructor;
@@ -45,7 +47,7 @@ public class PlatoServiceImpl implements IPlatoService {
     public List<Plato> obtenerPorCategoria(String categoria) {
         return repository.findAll().stream()
                 .map(entityMapper::toDomain)
-                .filter(plato -> plato.getCategoria().equalsIgnoreCase(categoria))
+                .filter(plato -> TextoUtils.sonIgualesNormalizados(plato.getCategoria(), categoria))
                 .toList();
     }
 
@@ -60,6 +62,17 @@ public class PlatoServiceImpl implements IPlatoService {
     }
 
     @Override
+    public Plato obtenerDisponiblePorId(Long id) {
+        Plato plato = obtenerPorId(id);
+        if (!plato.estaDisponible()) {
+            log.warn("Plato no disponible en el menu: id={}", id);
+            throw new RecursoNoEncontradoException("Plato disponible en el menu", id);
+        }
+        return plato;
+    }
+
+    @Override
+    @Transactional
     public Plato crear(Plato plato) {
         validator.validarNombreUnico(plato.getNombre());
         plato.setDisponible(true);
@@ -70,9 +83,10 @@ public class PlatoServiceImpl implements IPlatoService {
     }
 
     @Override
+    @Transactional
     public Plato actualizar(Long id, Plato nuevosDatos) {
         Plato existente = obtenerPorId(id);
-        boolean nombreCambiado = !existente.getNombre().equalsIgnoreCase(nuevosDatos.getNombre());
+        boolean nombreCambiado = !TextoUtils.sonIgualesNormalizados(existente.getNombre(), nuevosDatos.getNombre());
         if (nombreCambiado) {
             validator.validarNombreUnico(nuevosDatos.getNombre());
         }
@@ -80,6 +94,7 @@ public class PlatoServiceImpl implements IPlatoService {
         existente.setNombre(nuevosDatos.getNombre());
         existente.setPrecio(nuevosDatos.getPrecio());
         existente.setCategoria(nuevosDatos.getCategoria());
+        existente.setDescripcion(nuevosDatos.getDescripcion());
 
         PlatoEntity actualizado = repository.save(entityMapper.toEntity(existente));
         Plato resultado = entityMapper.toDomain(actualizado);
@@ -88,6 +103,7 @@ public class PlatoServiceImpl implements IPlatoService {
     }
 
     @Override
+    @Transactional
     public Plato cambiarDisponibilidad(Long id, boolean disponible) {
         Plato plato = obtenerPorId(id);
         if (disponible) {
@@ -103,8 +119,10 @@ public class PlatoServiceImpl implements IPlatoService {
     }
 
     @Override
+    @Transactional
     public void eliminar(Long id) {
         obtenerPorId(id);
+        validator.validarSinPedidosActivos(id);
         repository.deleteById(id);
         log.info("Plato eliminado: id={}", id);
     }
