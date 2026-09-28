@@ -3,6 +3,7 @@ package com.restaurante.model.domain;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Pedido {
 
-    private Long id;
+    private UUID id;
     private Long idMesa;
     @Builder.Default
     private List<ItemPedido> items = new ArrayList<>();

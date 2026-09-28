@@ -1,15 +1,13 @@
 package com.restaurante.repository;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
-import com.restaurante.model.domain.Reserva;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface IReservaRepository {
+import com.restaurante.model.entity.ReservaEntity;
 
-    List<Reserva> findAll();
+public interface IReservaRepository extends JpaRepository<ReservaEntity, UUID> {
 
-    Optional<Reserva> findById(Long id);
-
-    Reserva save(Reserva reserva);
+    List<ReservaEntity> findByIdMesa(Long idMesa);
 }

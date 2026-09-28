@@ -17,8 +17,8 @@ public interface ItemPedidoMapper {
     @Mapping(target = "precioCongelado", ignore = true)
     ItemPedido toDomain(ItemPedidoRequestDTO dto);
 
-    @Mapping(target = "subtotal", expression = "java(itemPedido.subtotal())")
-    ItemPedidoResponseDTO toResponse(ItemPedido itemPedido);
+    @Mapping(target = "subtotal", expression = "java(item.subtotal())")
+    ItemPedidoResponseDTO toResponse(ItemPedido item);
 
     List<ItemPedidoResponseDTO> toResponseList(List<ItemPedido> items);
 }

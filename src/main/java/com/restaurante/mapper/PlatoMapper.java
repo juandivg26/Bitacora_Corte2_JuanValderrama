@@ -13,7 +13,7 @@ import com.restaurante.model.dto.response.PlatoResponseDTO;
 public interface PlatoMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "disponible", constant = "true")
+    @Mapping(target = "disponible", ignore = true)
     Plato toDomain(PlatoRequestDTO dto);
 
     PlatoResponseDTO toResponse(Plato plato);

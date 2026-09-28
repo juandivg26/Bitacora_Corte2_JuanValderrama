@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,7 +30,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.restaurante.exception.ConflictoException;
 import com.restaurante.exception.RecursoNoEncontradoException;
+import com.restaurante.mapper.PlatoEntityMapper;
+import com.restaurante.mapper.PlatoEntityMapperImpl;
 import com.restaurante.model.domain.Plato;
+import com.restaurante.model.entity.PlatoEntity;
 import com.restaurante.repository.IPlatoRepository;
 import com.restaurante.validator.IPlatoValidator;
 
@@ -48,26 +49,36 @@ class PlatoServiceImplTest {
     @InjectMocks
     private PlatoServiceImpl service;
 
-    private final Map<Long, Plato> almacen = new HashMap<>();
-    private final AtomicLong idGenerador = new AtomicLong(1);
+    private final PlatoEntityMapper entityMapper = new PlatoEntityMapperImpl();
+    private final Map<Long, PlatoEntity> almacen = new HashMap<>();
 
     @BeforeEach
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "entityMapper", entityMapper);
         almacen.clear();
-        idGenerador.set(1);
-        lenient().when(repository.save(any())).thenAnswer(inv -> {
-            Plato plato = inv.getArgument(0);
+        lenient().when(repository.save(any(PlatoEntity.class))).thenAnswer(inv -> {
+            PlatoEntity plato = inv.getArgument(0);
             if (plato.getId() == null) {
-                plato.setId(idGenerador.getAndIncrement());
+                plato.setId((long) (almacen.size() + 1));
             }
             almacen.put(plato.getId(), plato);
             return plato;
         });
         lenient().when(repository.findById(anyLong()))
-                .thenAnswer(inv -> Optional.ofNullable(almacen.get((Long) inv.getArgument(0))));
+                .thenAnswer(inv -> Optional.ofNullable(almacen.get(inv.getArgument(0))));
         lenient().when(repository.findAll()).thenAnswer(inv -> new ArrayList<>(almacen.values()));
-        lenient().doAnswer(inv -> almacen.remove((Long) inv.getArgument(0)))
+        lenient().doAnswer(inv -> almacen.remove(inv.getArgument(0)))
                 .when(repository).deleteById(anyLong());
+    }
+
+    private PlatoEntity platoEntity(String nombre, double precio, String categoria, boolean disponible) {
+        return PlatoEntity.builder()
+                .id(null)
+                .nombre(nombre)
+                .precio(precio)
+                .categoria(categoria)
+                .disponible(disponible)
+                .build();
     }
 
     @Test
@@ -81,14 +92,14 @@ class PlatoServiceImplTest {
 
         assertNotNull(resultado.getId());
         assertEquals("Bandeja Paisa", resultado.getNombre());
-        verify(validator, times(1)).validarNombreUnico(eq("Bandeja Paisa"), any());
+        verify(validator, times(1)).validarNombreUnico("Bandeja Paisa");
     }
 
     @Test
     @DisplayName("crear - nombre duplicado lanza ConflictoException")
     void crear_nombreDuplicado_lanzaConflicto() {
-        doThrow(new ConflictoException("Nombre duplicado"))
-                .when(validator).validarNombreUnico(any(), any());
+        org.mockito.Mockito.doThrow(new ConflictoException("Nombre duplicado"))
+                .when(validator).validarNombreUnico("Bandeja Paisa");
 
         Plato plato = Plato.builder().nombre("Bandeja Paisa")
                 .precio(28000.0).categoria("PRINCIPALES").build();
@@ -114,10 +125,8 @@ class PlatoServiceImplTest {
     @Test
     @DisplayName("obtenerDisponibles - filtra solo los disponibles")
     void obtenerDisponibles_filtraSoloDisponibles() {
-        service.crear(Plato.builder().nombre("A").precio(10.0)
-                .categoria("X").disponible(true).build());
-        service.crear(Plato.builder().nombre("B").precio(10.0)
-                .categoria("X").disponible(false).build());
+        almacen.put(1L, platoEntity("A", 10.0, "X", true));
+        almacen.put(2L, platoEntity("B", 10.0, "X", false));
 
         List<Plato> resultado = service.obtenerDisponibles();
 
@@ -128,10 +137,8 @@ class PlatoServiceImplTest {
     @Test
     @DisplayName("obtenerPorCategoria - filtra ignorando mayúsculas/minúsculas")
     void obtenerPorCategoria_filtraCorrectamente() {
-        service.crear(Plato.builder().nombre("Ajiaco").precio(20000.0)
-                .categoria("SOPAS").disponible(true).build());
-        service.crear(Plato.builder().nombre("Bandeja").precio(28000.0)
-                .categoria("PRINCIPALES").disponible(true).build());
+        almacen.put(1L, platoEntity("Ajiaco", 20000.0, "SOPAS", true));
+        almacen.put(2L, platoEntity("Bandeja", 28000.0, "PRINCIPALES", true));
 
         List<Plato> resultado = service.obtenerPorCategoria("sopas");
 
@@ -142,22 +149,41 @@ class PlatoServiceImplTest {
     @Test
     @DisplayName("cambiarDisponibilidad - desactiva un plato existente")
     void cambiarDisponibilidad_desactiva_correctamente() {
-        Plato creado = service.crear(Plato.builder().nombre("Sopa")
-                .precio(15000.0).categoria("ENTRADAS").disponible(true).build());
+        PlatoEntity entity = platoEntity("Sopa", 15000.0, "ENTRADAS", true);
+        entity.setId(1L);
+        almacen.put(1L, entity);
 
-        Plato resultado = service.cambiarDisponibilidad(creado.getId(), false);
+        Plato resultado = service.cambiarDisponibilidad(1L, false);
 
         assertFalse(resultado.estaDisponible());
     }
 
     @Test
+    @DisplayName("actualizar - modifica los datos de un plato existente")
+    void actualizar_platoExistente_modificaDatos() {
+        PlatoEntity entity = platoEntity("Sopa", 15000.0, "ENTRADAS", true);
+        entity.setId(1L);
+        almacen.put(1L, entity);
+
+        Plato nuevosDatos = Plato.builder().nombre("Sopa Especial")
+                .precio(17000.0).categoria("PRINCIPALES").build();
+
+        Plato resultado = service.actualizar(1L, nuevosDatos);
+
+        assertEquals("Sopa Especial", resultado.getNombre());
+        assertEquals(17000.0, resultado.getPrecio());
+        verify(validator).validarNombreUnico("Sopa Especial");
+    }
+
+    @Test
     @DisplayName("eliminar - borra el plato existente")
     void eliminar_platoExistente_loElimina() {
-        Plato creado = service.crear(Plato.builder().nombre("Sopa")
-                .precio(15000.0).categoria("ENTRADAS").disponible(true).build());
+        PlatoEntity entity = platoEntity("Sopa", 15000.0, "ENTRADAS", true);
+        entity.setId(1L);
+        almacen.put(1L, entity);
 
-        service.eliminar(creado.getId());
+        service.eliminar(1L);
 
-        assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerPorId(creado.getId()));
+        assertThrows(RecursoNoEncontradoException.class, () -> service.obtenerPorId(1L));
     }
 }

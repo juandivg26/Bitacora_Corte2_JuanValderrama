@@ -2,6 +2,7 @@ package com.restaurante.model.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import com.restaurante.model.domain.EstadoPedido;
 
@@ -16,7 +17,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class PedidoResponseDTO {
 
-    private Long id;
+    private UUID id;
     private Long idMesa;
     private List<ItemPedidoResponseDTO> items;
     private EstadoPedido estado;

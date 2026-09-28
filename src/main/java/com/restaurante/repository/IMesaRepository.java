@@ -1,17 +1,10 @@
 package com.restaurante.repository;
 
-import java.util.List;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.restaurante.model.domain.Mesa;
+import com.restaurante.model.entity.MesaEntity;
 
-public interface IMesaRepository {
+public interface IMesaRepository extends JpaRepository<MesaEntity, Long> {
 
-    List<Mesa> findAll();
-
-    Optional<Mesa> findById(Long id);
-
-    Mesa save(Mesa mesa);
-
-    void deleteById(Long id);
+    boolean existsByNumero(Integer numero);
 }

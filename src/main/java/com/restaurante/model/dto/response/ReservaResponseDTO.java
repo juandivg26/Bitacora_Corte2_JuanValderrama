@@ -1,6 +1,7 @@
 package com.restaurante.model.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ReservaResponseDTO {
 
-    private Long id;
+    private UUID id;
     private Long idMesa;
     private String cliente;
     private LocalDateTime fechaHora;
