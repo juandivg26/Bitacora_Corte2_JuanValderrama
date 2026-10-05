@@ -67,6 +67,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(buildError(422, "Unprocessable Entity", ex.getMessage(), request.getRequestURI()));
     }
 
+    // ----------------------------- Errores de Seguridad -----------------------------
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex,
+                                                               HttpServletRequest request) {
+        log.warn("Acceso denegado (403): {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(buildError(403, "Forbidden", "No tienes permisos para realizar esta acción", request.getRequestURI()));
+    }
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAuthentication(org.springframework.security.core.AuthenticationException ex,
+                                                                 HttpServletRequest request) {
+        log.warn("Falla de autenticación (401): {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(buildError(401, "Unauthorized", "Credenciales incorrectas o token no válido", request.getRequestURI()));
+    }
+
     // ------------------------ Errores de la capa web (Spring MVC) ------------------------
 
     @Override
