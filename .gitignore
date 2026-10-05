@@ -1,0 +1,26 @@
+# Archivos de compilación y empaquetado
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Entornos de desarrollo (IDEs)
+.idea/
+*.iml
+.vscode/
+*.factorypath
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de registro y temporales
+*.log
+*.tmp
+
+# Credenciales locales (NO versionar)
+.env.properties
+
+# Herramientas opcionales / Scripts temporales
+.github/modernize/

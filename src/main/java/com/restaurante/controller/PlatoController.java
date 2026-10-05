@@ -1,0 +1,108 @@
+package com.restaurante.controller;
+
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.restaurante.controller.docs.PlatoApi;
+import com.restaurante.mapper.PlatoMapper;
+import com.restaurante.model.domain.Plato;
+import com.restaurante.model.dto.request.PlatoRequestDTO;
+import com.restaurante.model.dto.response.PlatoResponseDTO;
+import com.restaurante.service.IPlatoService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@RestController
+@RequestMapping("/api/v1/platos")
+@RequiredArgsConstructor
+@Slf4j
+public class PlatoController implements PlatoApi {
+
+    private final IPlatoService platoService;
+    private final PlatoMapper platoMapper;
+
+    @Override
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
+    public ResponseEntity<List<PlatoResponseDTO>> obtenerTodos() {
+        log.info("GET /api/v1/platos");
+        List<Plato> platos = platoService.obtenerTodos();
+        return ResponseEntity.ok(platoMapper.toResponseList(platos));
+    }
+
+    @Override
+    @GetMapping("/disponibles")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
+    public ResponseEntity<List<PlatoResponseDTO>> obtenerDisponibles() {
+        List<Plato> platos = platoService.obtenerDisponibles();
+        return ResponseEntity.ok(platoMapper.toResponseList(platos));
+    }
+
+    @Override
+    @GetMapping("/categoria/{categoria}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
+    public ResponseEntity<List<PlatoResponseDTO>> obtenerPorCategoria(@PathVariable String categoria) {
+        List<Plato> platos = platoService.obtenerPorCategoria(categoria);
+        return ResponseEntity.ok(platoMapper.toResponseList(platos));
+    }
+
+    @Override
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
+    public ResponseEntity<PlatoResponseDTO> obtenerPorId(@PathVariable Long id) {
+        Plato plato = platoService.obtenerPorId(id);
+        return ResponseEntity.ok(platoMapper.toResponse(plato));
+    }
+
+    @Override
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'CHEF')")
+    public ResponseEntity<PlatoResponseDTO> crear(@RequestBody @Valid PlatoRequestDTO dto) {
+        log.info("POST /api/v1/platos - nombre={}", dto.getNombre());
+        Plato plato = platoMapper.toDomain(dto);
+        Plato creado = platoService.crear(plato);
+        return ResponseEntity.status(HttpStatus.CREATED).body(platoMapper.toResponse(creado));
+    }
+
+    @Override
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'CHEF')")
+    public ResponseEntity<PlatoResponseDTO> actualizar(@PathVariable Long id,
+                                                        @RequestBody @Valid PlatoRequestDTO dto) {
+        Plato nuevosDatos = platoMapper.toDomain(dto);
+        Plato actualizado = platoService.actualizar(id, nuevosDatos);
+        return ResponseEntity.ok(platoMapper.toResponse(actualizado));
+    }
+
+    @Override
+    @PatchMapping("/{id}/disponible")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'CHEF')")
+    public ResponseEntity<PlatoResponseDTO> cambiarDisponibilidad(@PathVariable Long id,
+                                                                  @RequestParam boolean disponible) {
+        Plato actualizado = platoService.cambiarDisponibilidad(id, disponible);
+        return ResponseEntity.ok(platoMapper.toResponse(actualizado));
+    }
+
+    @Override
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'CHEF')")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        platoService.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+}
