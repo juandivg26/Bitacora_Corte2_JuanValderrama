@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -37,6 +38,7 @@ public class MesaController implements MesaApi {
 
     @Override
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
     public ResponseEntity<List<MesaResponseDTO>> obtenerTodas() {
         log.info("GET /api/v1/mesas");
         List<Mesa> mesas = mesaService.obtenerTodas();
@@ -45,6 +47,7 @@ public class MesaController implements MesaApi {
 
     @Override
     @GetMapping("/disponibles")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
     public ResponseEntity<List<MesaResponseDTO>> obtenerDisponibles() {
         List<Mesa> mesas = mesaService.obtenerDisponibles();
         return ResponseEntity.ok(mesaMapper.toResponseList(mesas));
@@ -52,6 +55,7 @@ public class MesaController implements MesaApi {
 
     @Override
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
     public ResponseEntity<MesaResponseDTO> obtenerPorId(@PathVariable Long id) {
         Mesa mesa = mesaService.obtenerPorId(id);
         return ResponseEntity.ok(mesaMapper.toResponse(mesa));
@@ -59,6 +63,7 @@ public class MesaController implements MesaApi {
 
     @Override
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     public ResponseEntity<MesaResponseDTO> crear(@RequestBody @Valid MesaRequestDTO dto) {
         log.info("POST /api/v1/mesas - numero={}", dto.getNumero());
         Mesa mesa = mesaMapper.toDomain(dto);
@@ -68,6 +73,7 @@ public class MesaController implements MesaApi {
 
     @Override
     @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO')")
     public ResponseEntity<MesaResponseDTO> cambiarEstado(@PathVariable Long id,
                                                          @RequestParam EstadoMesa nuevoEstado) {
         Mesa actualizada = mesaService.cambiarEstado(id, nuevoEstado);
@@ -76,6 +82,7 @@ public class MesaController implements MesaApi {
 
     @Override
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         mesaService.eliminar(id);
         return ResponseEntity.noContent().build();

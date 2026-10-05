@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,6 +41,7 @@ public class PedidoController implements PedidoApi {
 
     @Override
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
     public ResponseEntity<List<PedidoResponseDTO>> obtenerTodos() {
         log.info("GET /api/v1/pedidos");
         List<Pedido> pedidos = pedidoService.obtenerTodos();
@@ -48,6 +50,7 @@ public class PedidoController implements PedidoApi {
 
     @Override
     @GetMapping("/mesa/{idMesa}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
     public ResponseEntity<List<PedidoResponseDTO>> obtenerPorMesa(@PathVariable Long idMesa) {
         List<Pedido> pedidos = pedidoService.obtenerPorMesa(idMesa);
         return ResponseEntity.ok(pedidoMapper.toResponseList(pedidos));
@@ -55,6 +58,7 @@ public class PedidoController implements PedidoApi {
 
     @Override
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
     public ResponseEntity<PedidoResponseDTO> obtenerPorId(@PathVariable UUID id) {
         Pedido pedido = pedidoService.obtenerPorId(id);
         return ResponseEntity.ok(pedidoMapper.toResponse(pedido));
@@ -62,6 +66,7 @@ public class PedidoController implements PedidoApi {
 
     @Override
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO')")
     public ResponseEntity<PedidoResponseDTO> crear(@RequestBody @Valid PedidoRequestDTO dto) {
         log.info("POST /api/v1/pedidos - idMesa={}", dto.getIdMesa());
         Pedido pedido = pedidoMapper.toDomain(dto);
@@ -71,6 +76,7 @@ public class PedidoController implements PedidoApi {
 
     @Override
     @PostMapping("/{id}/items")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO')")
     public ResponseEntity<PedidoResponseDTO> agregarItem(@PathVariable UUID id,
                                                          @RequestBody @Valid ItemPedidoRequestDTO dto) {
         ItemPedido item = itemPedidoMapper.toDomain(dto);
@@ -80,6 +86,7 @@ public class PedidoController implements PedidoApi {
 
     @Override
     @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF')")
     public ResponseEntity<PedidoResponseDTO> cambiarEstado(@PathVariable UUID id,
                                                            @RequestBody @Valid CambiarEstadoPedidoRequestDTO dto) {
         Pedido actualizado = pedidoService.cambiarEstado(id, dto.getEstado());

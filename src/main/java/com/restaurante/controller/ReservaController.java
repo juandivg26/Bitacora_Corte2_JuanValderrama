@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,6 +37,7 @@ public class ReservaController implements ReservaApi {
 
     @Override
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'CAJERO')")
     public ResponseEntity<List<ReservaResponseDTO>> obtenerTodas() {
         log.info("GET /api/v1/reservas");
         List<Reserva> reservas = reservaService.obtenerTodas();
@@ -44,6 +46,7 @@ public class ReservaController implements ReservaApi {
 
     @Override
     @GetMapping("/mesa/{idMesa}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'CAJERO')")
     public ResponseEntity<List<ReservaResponseDTO>> obtenerPorMesa(@PathVariable Long idMesa) {
         List<Reserva> reservas = reservaService.obtenerPorMesa(idMesa);
         return ResponseEntity.ok(reservaMapper.toResponseList(reservas));
@@ -51,6 +54,7 @@ public class ReservaController implements ReservaApi {
 
     @Override
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'CAJERO', 'CLIENTE')")
     public ResponseEntity<ReservaResponseDTO> obtenerPorId(@PathVariable UUID id) {
         Reserva reserva = reservaService.obtenerPorId(id);
         return ResponseEntity.ok(reservaMapper.toResponse(reserva));
@@ -58,6 +62,7 @@ public class ReservaController implements ReservaApi {
 
     @Override
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'CLIENTE')")
     public ResponseEntity<ReservaResponseDTO> crear(@RequestBody @Valid ReservaRequestDTO dto) {
         log.info("POST /api/v1/reservas - idMesa={}, cliente={}", dto.getIdMesa(), dto.getCliente());
         Reserva reserva = reservaMapper.toDomain(dto);
@@ -67,6 +72,7 @@ public class ReservaController implements ReservaApi {
 
     @Override
     @PatchMapping("/{id}/cancelar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'CLIENTE')")
     public ResponseEntity<ReservaResponseDTO> cancelar(@PathVariable UUID id) {
         Reserva reserva = reservaService.cancelar(id);
         return ResponseEntity.ok(reservaMapper.toResponse(reserva));
@@ -74,8 +80,9 @@ public class ReservaController implements ReservaApi {
 
     @Override
     @PatchMapping("/{id}/reprogramar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'CLIENTE')")
     public ResponseEntity<ReservaResponseDTO> reprogramar(@PathVariable UUID id,
-                                                          @RequestBody @Valid ReprogramarReservaRequestDTO dto) {
+                                                           @RequestBody @Valid ReprogramarReservaRequestDTO dto) {
         Reserva reserva = reservaService.reprogramar(id, dto.getFechaHora());
         return ResponseEntity.ok(reservaMapper.toResponse(reserva));
     }
