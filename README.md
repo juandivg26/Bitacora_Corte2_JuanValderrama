@@ -321,7 +321,105 @@ La API queda disponible en `http://localhost:8080`.
 
 ---
 
-## 8. Pruebas locales
+## 8. Dockerización
+
+El proyecto incluye un `Dockerfile` multietapa y un `docker-compose.yml` para levantar la API junto con PostgreSQL y MongoDB. Docker Compose crea una red interna, espera a que PostgreSQL y MongoDB estén disponibles y conserva los datos mediante volúmenes nombrados.
+
+### 8.1 Requisitos
+
+- Docker Desktop instalado y ejecutándose.
+- Verificar con:
+
+```bash
+docker --version
+docker compose version
+```
+
+### 8.2 Configuración de variables
+
+Copiar `.env.example` a `.env` y cambiar los valores sensibles:
+
+```bash
+copy .env.example .env
+```
+
+En PowerShell también puede usarse:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+El archivo `.env` está ignorado por Git. Las variables principales son:
+
+| Variable | Descripción |
+|---|---|
+| `POSTGRES_DB` | Nombre de la base de datos PostgreSQL |
+| `POSTGRES_USER` | Usuario de PostgreSQL |
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL |
+| `MONGO_DB` | Base de datos de eventos en MongoDB |
+| `MONGO_ROOT_USERNAME` | Usuario administrador de MongoDB |
+| `MONGO_ROOT_PASSWORD` | Contraseña del administrador de MongoDB |
+| `JWT_SECRET` | Secreto usado para firmar los tokens JWT; mínimo 32 bytes |
+| `API_PORT` | Puerto local expuesto por la API, por defecto `8080` |
+
+### 8.3 Levantar el stack completo
+
+```bash
+docker compose --env-file .env up --build -d
+```
+
+En Windows PowerShell, el mismo comando funciona desde la raíz del proyecto. Para verificar el estado:
+
+```bash
+docker compose ps
+docker compose logs -f api
+```
+
+La API queda disponible en:
+
+- Swagger: `http://localhost:8080/swagger-ui/index.html`
+- OpenAPI: `http://localhost:8080/v3/api-docs`
+
+### 8.4 Detener y reiniciar
+
+```bash
+# Detener y eliminar contenedores, conservando datos
+docker compose down
+
+# Reiniciar solo la API
+docker compose restart api
+
+# Eliminar también los volúmenes (borra PostgreSQL y MongoDB)
+docker compose down -v
+```
+
+### 8.5 Construir y ejecutar solo la imagen de la API
+
+```bash
+docker build -t american-bites-api:1.0 .
+docker images
+docker run --rm -p 8080:8080 --env-file .env american-bites-api:1.0
+```
+
+Para publicar la imagen en Docker Hub, reemplazar `SU_USUARIO` por el usuario real:
+
+```bash
+docker login
+docker build -t SU_USUARIO/american-bites-api:1.0 .
+docker tag SU_USUARIO/american-bites-api:1.0 SU_USUARIO/american-bites-api:latest
+docker push SU_USUARIO/american-bites-api:1.0
+docker push SU_USUARIO/american-bites-api:latest
+```
+
+> No se publican credenciales ni archivos `.env`. La imagen usa un usuario Linux no privilegiado y el build multietapa excluye Maven y el código fuente de la imagen final.
+
+### 8.6 Kubernetes — referencia
+
+La carpeta `k8s/deployment.yml` contiene un ejemplo de `Deployment` con dos réplicas y un `Service` tipo `LoadBalancer`. Es material de referencia para un despliegue posterior; el entregable actual se verifica con Docker Compose.
+
+---
+
+## 9. Pruebas locales
 
 ```bash
 mvn clean test

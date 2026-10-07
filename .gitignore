@@ -1,26 +1,31 @@
-# Archivos de compilación y empaquetado
-target/
-*.class
-*.jar
-*.war
-*.ear
+# Maven
+/target/
+!.mvn/wrapper/maven-wrapper.jar
 
-# Entornos de desarrollo (IDEs)
+# IDEs
 .idea/
-*.iml
 .vscode/
-*.factorypath
+*.iml
+.classpath
+.project
+.settings/
 
 # Sistema operativo
 .DS_Store
 Thumbs.db
 
-# Archivos de registro y temporales
+# Logs
 *.log
-*.tmp
 
-# Credenciales locales (NO versionar)
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
 .env.properties
+*.p12
+*.jks
+*.keystore
 
-# Herramientas opcionales / Scripts temporales
-.github/modernize/
+# Docker
+postgres-data/
+mongo-data/

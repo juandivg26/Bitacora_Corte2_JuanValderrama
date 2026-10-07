@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -121,15 +122,50 @@ class SecurityTest {
     }
 
     @Test
-    @DisplayName("Crear plato con rol CLIENTE devuelve status 403 Forbidden")
-    @WithMockUser(username = "cliente@americanbites.com", roles = {"CLIENTE"})
-    void crearPlato_conRolCliente_devuelve403() throws Exception {
+    @DisplayName("Crear plato con rol COCINERO devuelve status 403 Forbidden (no tiene ROLE_CHEF)")
+    @WithMockUser(username = "cocinero@americanbites.com", roles = {"COCINERO"})
+    void crearPlato_conRolCocinero_devuelve403() throws Exception {
         PlatoRequestDTO dto = new PlatoRequestDTO("Hamburguesa Doble", 25000.0, "HAMBURGUESAS", "Doble carne con queso");
 
         mockMvc.perform(post("/api/v1/platos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("COCINERO con solo ROLE_COCINERO no puede crear platos (no tiene ROLE_CHEF)")
+    @WithMockUser(username = "cocinero@americanbites.com", roles = {"COCINERO"})
+    void crearPlato_conRolCocineroSolo_devuelve403() throws Exception {
+        PlatoRequestDTO dto = new PlatoRequestDTO("Perro Caliente", 15000.0, "PERROS", "Con todo");
+
+        mockMvc.perform(post("/api/v1/platos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Login con token expirado devuelve status 401")
+    void login_tokenExpirado_devuelve401() throws Exception {
+        // Crear un token que ya expiró (expirationMs negativo)
+        JwtUtil expiredJwt = new JwtUtil();
+        ReflectionTestUtils.setField(expiredJwt, "secret", "4Vz/4bwWV0VQ+V9IItur6TNpW1Yw9FMsFf7GoGPo7/vDkS/A");
+        ReflectionTestUtils.setField(expiredJwt, "expirationMs", -1000L); // Ya expirado
+        
+        String expiredToken = expiredJwt.generateToken("admin@americanbites.com", "ADMINISTRADOR");
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer " + expiredToken))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Login con token malformado devuelve status 401")
+    void login_tokenMalformado_devuelve401() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer token.invalido.malformado"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

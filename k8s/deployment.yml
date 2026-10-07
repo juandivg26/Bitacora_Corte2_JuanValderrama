@@ -1,0 +1,54 @@
+# Referencia de despliegue Kubernetes para American Bites.
+# No se requiere para Docker Compose; usar en un clúster con una imagen publicada.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: american-bites-api
+  labels:
+    app: american-bites-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: american-bites-api
+  template:
+    metadata:
+      labels:
+        app: american-bites-api
+    spec:
+      containers:
+        - name: api
+          image: REEMPLAZAR_USUARIO_DOCKERHUB/american-bites-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: american-bites-secrets
+                  key: jwt-secret
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: american-bites-api-service
+spec:
+  selector:
+    app: american-bites-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer
