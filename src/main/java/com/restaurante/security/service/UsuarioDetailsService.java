@@ -54,9 +54,9 @@ public class UsuarioDetailsService implements UserDetailsService {
         // Alias comunes para interoperabilidad
         if (rol == Rol.ADMINISTRADOR) {
             authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
-        } else if (rol == Rol.COCINERO) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_CHEF"));
         }
+        // NOTA: COCINERO NO tiene ROLE_CHEF para evitar que pueda crear/editar platos
+        // Solo ADMINISTRADOR puede gestionar platos según la matriz de roles
 
         return authorities;
     }

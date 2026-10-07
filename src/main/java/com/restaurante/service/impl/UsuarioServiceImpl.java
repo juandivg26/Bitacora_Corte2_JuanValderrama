@@ -64,9 +64,9 @@ public class UsuarioServiceImpl implements IUsuarioService {
             throw new ConflictoException("Ya existe un usuario registrado con el email: " + usuario.getEmail());
         }
 
-        if (usuario.getRol() == null) {
-            usuario.setRol(Rol.CLIENTE);
-        }
+        // SEGURIDAD: Siempre se asigna rol CLIENTE, se ignora cualquier rol enviado en el request
+        // para evitar que un usuario malicioso se registre como ADMINISTRADOR
+        usuario.setRol(Rol.CLIENTE);
 
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
         usuario.setFechaCreacion(LocalDateTime.now());

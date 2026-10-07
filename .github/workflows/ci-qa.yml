@@ -1,0 +1,142 @@
+# CI/CD Pipeline para ambiente QA
+# Se activa en cada push a main o develop
+name: CI - Build · Test · Deploy QA
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  # Nombre de la imagen Docker (reemplazar SU_USUARIO con su usuario de Docker Hub)
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/american-bites-api
+
+jobs:
+  # Job 1: Ejecutar pruebas unitarias y de integración
+  test:
+    name: 🧪 Pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache de dependencias Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Ejecutar pruebas con Maven
+        run: mvn test --no-transfer-progress
+
+      - name: Publicar reporte de cobertura JaCoCo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-qa
+          path: target/site/jacoco/
+          retention-days: 7
+
+  # Job 2: Build de la imagen Docker y push a Docker Hub
+  build-and-push:
+    name: 🐳 Build y Push Docker
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout código fuente
+        uses: actions/checkout@v4
+
+      - name: Login a Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extraer metadatos de la imagen
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=qa-        # tag: qa-abc1234
+            type=raw,value=qa-latest   # tag: qa-latest
+
+      - name: Build y push de la imagen Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Guardar información de la imagen
+        id: image-info
+        run: |
+          echo "tag=${{ steps.meta.outputs.tags }}" >> $GITHUB_OUTPUT
+          echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+  # Job 3: Despliegue a Azure App Service QA
+  deploy-qa:
+    name: 🚀 Desplegar a QA
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment:
+      name: qa
+      url: https://${{ secrets.AZURE_WEBAPP_NAME_QA }}.azurewebsites.net/swagger-ui/index.html
+    steps:
+      - name: Checkout código fuente
+        uses: actions/checkout@v4
+
+      - name: Login en Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Desplegar en Azure Web App (QA)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_QA }}
+          images: ${{ env.IMAGE_NAME }}:qa-latest
+
+      - name: Configurar variables de entorno en Azure QA
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_QA }}
+          app-settings-json: |
+            [
+              {"name": "SPRING_PROFILES_ACTIVE", "value": "docker"},
+              {"name": "SERVER_PORT", "value": "8080"},
+              {"name": "JWT_SECRET", "value": "${{ secrets.JWT_SECRET_QA }}", "slotSetting": false},
+              {"name": "DB_HOST", "value": "${{ secrets.DB_HOST_QA }}", "slotSetting": false},
+              {"name": "DB_PORT", "value": "5432", "slotSetting": false},
+              {"name": "DB_NAME", "value": "american_bites", "slotSetting": false},
+              {"name": "DB_USERNAME", "value": "${{ secrets.DB_USERNAME_QA }}", "slotSetting": false},
+              {"name": "DB_PASSWORD", "value": "${{ secrets.DB_PASSWORD_QA }}", "slotSetting": true},
+              {"name": "MONGO_HOST", "value": "${{ secrets.MONGO_HOST_QA }}", "slotSetting": false},
+              {"name": "MONGO_PORT", "value": "27017", "slotSetting": false},
+              {"name": "MONGO_DB", "value": "american_bites", "slotSetting": false},
+              {"name": "MONGO_USERNAME", "value": "${{ secrets.MONGO_USERNAME_QA }}", "slotSetting": false},
+              {"name": "MONGO_PASSWORD", "value": "${{ secrets.MONGO_PASSWORD_QA }}", "slotSetting": true},
+              {"name": "JPA_DDL_AUTO", "value": "update", "slotSetting": false},
+              {"name": "JPA_SHOW_SQL", "value": "false", "slotSetting": false}
+            ]
+
+      - name: Mostrar URL del despliegue
+        run: |
+          echo "✅ API desplegada en QA:"
+          echo "   https://${{ secrets.AZURE_WEBAPP_NAME_QA }}.azurewebsites.net/swagger-ui/index.html"
