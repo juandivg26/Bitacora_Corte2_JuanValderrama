@@ -20,7 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JwtUtil {
 
-    @Value("${jwt.secret:AmericanBitesSuperSecretKeyParaFirmaDeTokensJWT2026SecureBase64FormattedKey=}")
+    // Sin valor por defecto: el secreto nunca se versiona (OWASP A5). Se inyecta con JWT_SECRET.
+    @Value("${jwt.secret}")
     private String secret;
 
     @Value("${jwt.expiration-ms:3600000}")
@@ -37,9 +38,8 @@ public class JwtUtil {
         }
         byte[] rawBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (rawBytes.length < 32) {
-            byte[] padded = new byte[32];
-            System.arraycopy(rawBytes, 0, padded, 0, rawBytes.length);
-            return Keys.hmacShaKeyFor(padded);
+            // Rellenar con ceros produciría una clave débil (OWASP A2): mejor fallar.
+            throw new IllegalStateException("jwt.secret debe tener al menos 32 bytes (256 bits) para HS256");
         }
         return Keys.hmacShaKeyFor(rawBytes);
     }

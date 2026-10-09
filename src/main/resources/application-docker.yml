@@ -5,7 +5,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:american_bites}
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:american_bites}?sslmode=${DB_SSLMODE:prefer}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -20,7 +20,9 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   data:
     mongodb:
-      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:admin}@${MONGO_HOST:mongo}:${MONGO_PORT:27017}/${MONGO_DB:american_bites}?authSource=admin
+      # En Azure se pasa MONGODB_URI completo (Cosmos DB usa puerto 10255 y ssl=true).
+      uri: ${MONGODB_URI:mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:admin}@${MONGO_HOST:mongo}:${MONGO_PORT:27017}/${MONGO_DB:american_bites}?authSource=admin}
+      database: ${MONGO_DB:american_bites}
 
 jwt:
   secret: ${JWT_SECRET}
@@ -31,3 +33,6 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
+
+app:
+  seed-users: ${APP_SEED_USERS:true}

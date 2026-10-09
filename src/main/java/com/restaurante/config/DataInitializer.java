@@ -3,6 +3,7 @@ package com.restaurante.config;
 import java.time.LocalDateTime;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +14,12 @@ import com.restaurante.repository.IUsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Crea usuarios de prueba con contraseñas conocidas. Solo para local/QA:
+ * en PROD se desactiva con APP_SEED_USERS=false (OWASP A5/A7).
+ */
 @Component
+@ConditionalOnProperty(name = "app.seed-users", havingValue = "true", matchIfMissing = true)
 @Slf4j
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {

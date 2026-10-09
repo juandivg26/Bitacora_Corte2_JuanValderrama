@@ -1,5 +1,7 @@
 # CI/CD Pipeline para ambiente PROD
-# Se activa al crear un tag de versión: v1.0.0, v1.1.0, etc.
+# Se activa al crear un tag de versión: git tag v1.0.0 && git push origin v1.0.0
+# El job deploy-prod usa el environment "production", que debe tener "Required reviewers"
+# configurado en Settings → Environments para pausar hasta la aprobación manual.
 name: CD - Deploy PROD
 
 on:
@@ -8,102 +10,117 @@ on:
       - 'v*.*.*'
 
 env:
-  # Nombre de la imagen Docker (reemplazar SU_USUARIO con su usuario de Docker Hub)
-  REGISTRY: docker.io
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/american-bites-api
 
 jobs:
-  # Job 1: Build de la imagen Docker para PROD y push a Docker Hub
-  build-prod:
-    name: 🐳 Build imagen PROD
+  # Job 1: Las pruebas se repiten sobre el commit etiquetado antes de publicar en PROD
+  test:
+    name: 🧪 Pruebas
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
-      tag: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout código fuente
         uses: actions/checkout@v4
 
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Ejecutar pruebas con Maven
+        run: mvn -B test --no-transfer-progress
+
+  # Job 2: Build de la imagen Docker para PROD y push a Docker Hub
+  build-prod:
+    name: 🐳 Build imagen PROD
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout código fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login a Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # v1.2.3 -> tags 1.2.3 y latest
       - name: Extraer metadatos de la imagen
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}   # v1.0.0
-            type=raw,value=latest             # latest actualizado
+            type=semver,pattern={{version}}
+            type=raw,value=latest
 
       - name: Build y push imagen de producción
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Guardar versión desplegada
-        id: deploy-info
-        run: |
-          echo "version=${{ steps.meta.outputs.version }}" >> $GITHUB_OUTPUT
-          echo "tag=${{ steps.meta.outputs.tags }}" >> $GITHUB_OUTPUT
-          echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-  # Job 2: Despliegue a Azure App Service PROD (requiere aprobación manual)
+  # Job 3: Despliegue a Azure App Service PROD (requiere aprobación manual)
   deploy-prod:
     name: 🚀 Desplegar a PROD
     needs: build-prod
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://${{ secrets.AZURE_WEBAPP_NAME_PROD }}.azurewebsites.net/swagger-ui/index.html
+      url: https://${{ vars.AZURE_WEBAPP_NAME_PROD }}.azurewebsites.net/swagger-ui/index.html
     steps:
-      - name: Checkout código fuente
-        uses: actions/checkout@v4
-
       - name: Login en Azure
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Desplegar en Azure Web App (PROD)
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME_PROD }}
-          images: ${{ env.IMAGE_NAME }}:${{ needs.build-prod.outputs.version }}
 
       - name: Configurar variables de entorno en Azure PROD
         uses: azure/appservice-settings@v1
         with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME_PROD }}
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_PROD }}
           app-settings-json: |
             [
-              {"name": "SPRING_PROFILES_ACTIVE", "value": "docker"},
-              {"name": "SERVER_PORT", "value": "8080"},
+              {"name": "SPRING_PROFILES_ACTIVE", "value": "docker", "slotSetting": false},
+              {"name": "SERVER_PORT", "value": "8080", "slotSetting": false},
+              {"name": "WEBSITES_PORT", "value": "8080", "slotSetting": false},
               {"name": "JWT_SECRET", "value": "${{ secrets.JWT_SECRET_PROD }}", "slotSetting": false},
               {"name": "DB_HOST", "value": "${{ secrets.DB_HOST_PROD }}", "slotSetting": false},
               {"name": "DB_PORT", "value": "5432", "slotSetting": false},
-              {"name": "DB_NAME", "value": "american_bites", "slotSetting": false},
-              {"name": "DB_USERNAME", "value": "${{ secrets.DB_USERNAME_PROD }}", "slotSetting": false},
-              {"name": "DB_PASSWORD", "value": "${{ secrets.DB_PASSWORD_PROD }}", "slotSetting": true},
-              {"name": "MONGO_HOST", "value": "${{ secrets.MONGO_HOST_PROD }}", "slotSetting": false},
-              {"name": "MONGO_PORT", "value": "27017", "slotSetting": false},
-              {"name": "MONGO_DB", "value": "american_bites", "slotSetting": false},
-              {"name": "MONGO_USERNAME", "value": "${{ secrets.MONGO_USERNAME_PROD }}", "slotSetting": false},
-              {"name": "MONGO_PASSWORD", "value": "${{ secrets.MONGO_PASSWORD_PROD }}", "slotSetting": true},
+              {"name": "DB_NAME", "value": "american_bites_prod", "slotSetting": false},
+              {"name": "DB_USER", "value": "${{ secrets.DB_USER_PROD }}", "slotSetting": false},
+              {"name": "DB_PASSWORD", "value": "${{ secrets.DB_PASSWORD_PROD }}", "slotSetting": false},
+              {"name": "DB_SSLMODE", "value": "require", "slotSetting": false},
+              {"name": "MONGODB_URI", "value": "${{ secrets.MONGODB_URI_PROD }}", "slotSetting": false},
+              {"name": "MONGO_DB", "value": "american_bites_prod", "slotSetting": false},
+              {"name": "APP_SEED_USERS", "value": "false", "slotSetting": false},
               {"name": "JPA_DDL_AUTO", "value": "update", "slotSetting": false},
               {"name": "JPA_SHOW_SQL", "value": "false", "slotSetting": false}
             ]
 
-      - name: Mostrar URL del despliegue
+      - name: Desplegar en Azure Web App (PROD)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_PROD }}
+          images: docker.io/${{ env.IMAGE_NAME }}:${{ needs.build-prod.outputs.version }}
+
+  # Job 4: Resumen del despliegue
+  notify:
+    name: 📣 Notificación
+    needs: [build-prod, deploy-prod]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resumen del despliegue
         run: |
-          echo "🚀 API desplegada en PROD exitosamente:"
-          echo "   Versión: ${{ needs.build-prod.outputs.version }}"
-          echo "   SHA: ${{ needs.build-prod.outputs.sha }}"
-          echo "   URL: https://${{ secrets.AZURE_WEBAPP_NAME_PROD }}.azurewebsites.net/swagger-ui/index.html"
+          echo "✅ PROD desplegado exitosamente"
+          echo "Versión: ${{ github.ref_name }} (imagen ${{ needs.build-prod.outputs.version }})"
+          echo "Commit: ${{ github.sha }}"
+          echo "URL: https://${{ vars.AZURE_WEBAPP_NAME_PROD }}.azurewebsites.net/swagger-ui/index.html"
