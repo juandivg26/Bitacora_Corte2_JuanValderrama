@@ -421,6 +421,24 @@ docker push juandivg/american-bites-api:latest
 
 La carpeta `k8s/deployment.yml` contiene un ejemplo de `Deployment` con dos réplicas y un `Service` tipo `LoadBalancer`. Es material de referencia para un despliegue posterior; el entregable actual se verifica con Docker Compose.
 
+### 8.7 Evidencias
+
+**Servicios del stack (`docker compose ps`)** — PostgreSQL y MongoDB en estado *healthy*:
+
+![docker compose ps](docs/evidencias/docker-01-compose-ps.png)
+
+**Logs de arranque de la API** — perfil `docker`, conexión a PostgreSQL (HikariPool) y MongoDB, Tomcat en el puerto 8080:
+
+![Logs de la API](docs/evidencias/docker-02-logs-api.png)
+
+**Swagger corriendo dentro del contenedor** (`http://localhost:8080/swagger-ui/index.html`):
+
+![Swagger local](docs/evidencias/docker-03-swagger-local.png)
+
+**Imagen publicada en Docker Hub** — [`juandivg/american-bites-api`](https://hub.docker.com/r/juandivg/american-bites-api/tags) con los tags `1.0.0`, `latest` y `qa-<sha>`:
+
+![Docker Hub](docs/evidencias/docker-04-dockerhub-tags.png)
+
 ---
 
 ## 9. Pruebas locales
@@ -544,6 +562,40 @@ Crear un *ID de cliente OAuth* en Google Cloud Console con la URI de redirecció
 
 `SecurityTest`, `RegistrationSecurityTest` y `JwtUtilTest` cubren: login exitoso/fallido, `401` sin token, con token inválido, malformado o expirado, `403` por rol, `201` con rol correcto, HTTP Basic, `/auth/me` y headers de seguridad.
 
+### 10.9 Evidencias
+
+**Login exitoso** — `POST /api/v1/auth/login` devuelve el JWT:
+
+![Login JWT](docs/evidencias/seguridad-01-login-jwt.png)
+
+**401 sin token** — `POST /api/v1/platos` sin autenticación:
+
+![401 sin token](docs/evidencias/seguridad-02-sin-token-401.png)
+
+**403 con rol incorrecto** — el CLIENTE intenta crear un plato:
+
+![403 rol cliente](docs/evidencias/seguridad-03-rol-cliente-403.png)
+
+**Botón Authorize en Swagger** con el token JWT:
+
+![Authorize](docs/evidencias/seguridad-04-authorize-token.png)
+
+**201 con rol correcto** — el ADMINISTRADOR crea el plato:
+
+![201 admin](docs/evidencias/seguridad-05-admin-crea-plato-201.png)
+
+**Headers de seguridad** — `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection` y `Content-Security-Policy`:
+
+![Headers de seguridad](docs/evidencias/seguridad-08-headers-seguridad.png)
+
+**Passwords hasheados con BCrypt** en PostgreSQL:
+
+![BCrypt](docs/evidencias/seguridad-06-passwords-bcrypt.png)
+
+**Pruebas automáticas** — `mvn test`: 148 pruebas, 0 fallos:
+
+![mvn test](docs/evidencias/seguridad-07-mvn-test.png)
+
 ---
 
 ## 11. CI/CD y Despliegue
@@ -588,6 +640,40 @@ En *Settings → Environments* crear `qa` y `production` (este último con **Req
 ### 11.4 Diagrama de despliegue
 
 `docs/diagrama-despliegue.drawio`, exportado en PNG de alta resolución: Desarrollador → GitHub → GitHub Actions → Docker Hub → App Service QA / PROD, cada uno con su PostgreSQL y Cosmos DB.
+
+### 11.5 Evidencias
+
+**Pipeline QA en verde** — Pruebas → Build y Push Docker → Desplegar a QA:
+
+![Pipeline QA](docs/evidencias/cicd-01-pipeline-qa.png)
+
+**Pipeline PROD con aprobación manual** — tag `v1.0.0`, despliegue aprobado en el environment `production`:
+
+![Pipeline PROD](docs/evidencias/cicd-02-pipeline-prod-aprobacion.png)
+
+**API desplegada en Azure QA:**
+
+![Swagger QA](docs/evidencias/cicd-03-swagger-qa.png)
+
+**API desplegada en Azure PROD:**
+
+![Swagger PROD](docs/evidencias/cicd-04-swagger-prod.png)
+
+**PROD sin usuarios de prueba** — el login con `admin@americanbites.com` devuelve 401:
+
+![PROD sin seed](docs/evidencias/cicd-05-prod-sin-usuarios-seed-401.png)
+
+<details>
+<summary>Flujo de seguridad ejecutado en Azure QA (401 → 403 → 201 → headers)</summary>
+
+![QA login](docs/evidencias/cicd-qa-01-login-jwt.png)
+![QA 401](docs/evidencias/cicd-qa-02-sin-token-401.png)
+![QA 403](docs/evidencias/cicd-qa-03-rol-cliente-403.png)
+![QA authorize](docs/evidencias/cicd-qa-04-authorize-token.png)
+![QA 201](docs/evidencias/cicd-qa-05-admin-crea-plato-201.png)
+![QA headers](docs/evidencias/cicd-qa-08-headers-seguridad.png)
+
+</details>
 
 ---
 
