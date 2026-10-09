@@ -572,8 +572,8 @@ En *Settings → Environments* crear `qa` y `production` (este último con **Req
 
 ### 11.3 URLs desplegadas
 
-- QA: `https://<AZURE_WEBAPP_NAME_QA>.azurewebsites.net/swagger-ui/index.html`
-- PROD: `https://<AZURE_WEBAPP_NAME_PROD>.azurewebsites.net/swagger-ui/index.html`
+- QA: `	https://americanbites-jdv-qa.azurewebsites.net/swagger-ui/index.html`
+- PROD: `	https://americanbites-jdv-prod.azurewebsites.net/swagger-ui/index.html`
 
 ### 11.4 Diagrama de despliegue
 
