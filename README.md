@@ -572,8 +572,8 @@ En *Settings → Environments* crear `qa` y `production` (este último con **Req
 
 ### 11.3 URLs desplegadas
 
-- QA: `	https://americanbites-jdv-qa.azurewebsites.net/swagger-ui/index.html`
-- PROD: `	https://americanbites-jdv-prod.azurewebsites.net/swagger-ui/index.html`
+- QA: `https://americanbites-jdv-qa.azurewebsites.net/swagger-ui/index.html`
+- PROD: `https://americanbites-jdv-prod.azurewebsites.net/swagger-ui/index.html`
 
 ### 11.4 Diagrama de despliegue
 
@@ -669,3 +669,86 @@ SELECT * FROM reservas;
 ---
 
 
+
+## 13. Guía de demostración paso a paso
+
+Para ahorrar crédito, los recursos de Azure quedan **apagados** cuando no se usan. Esta guía explica cómo encender todo, mostrarlo y volver a apagarlo.
+
+### 13.1 Antes de empezar (una sola vez por equipo)
+
+1. Tener **Docker Desktop** abierto.
+2. Tener instalado **Azure CLI** (`winget install Microsoft.AzureCLI`) e iniciar sesión:
+
+```bash
+az login --use-device-code
+```
+
+Se abre un código; entrar a https://login.microsoft.com/device, pegarlo y elegir la cuenta de Azure for Students.
+
+### 13.2 Encender Azure (unos 10 minutos antes de presentar)
+
+```bash
+az postgres flexible-server start -g rg-americanbites -n americanbites-jdv-pg
+az appservice plan update -g rg-americanbites -n plan-americanbites --sku B1
+az webapp start -g rg-americanbites -n americanbites-jdv-qa
+az webapp start -g rg-americanbites -n americanbites-jdv-prod
+```
+
+El primer arranque de cada app tarda 1–2 minutos. Abrir las URLs de la sección 11.3 hasta que cargue Swagger.
+
+### 13.3 Demostración 1 — Docker (local)
+
+1. Desde la raíz del proyecto:
+
+```bash
+docker compose --env-file .env up --build -d
+docker compose ps
+```
+
+   Mostrar los tres servicios: `american-bites-api`, `american-bites-postgres` (healthy) y `american-bites-mongo` (healthy).
+2. Mostrar los logs de arranque sin errores de conexión: `docker compose logs api` → `Started RestauranteApplication`.
+3. Abrir `http://localhost:8080/swagger-ui/index.html`.
+4. Mostrar la imagen publicada en https://hub.docker.com/r/juandivg/american-bites-api/tags.
+
+### 13.4 Demostración 2 — Seguridad (en Swagger local o QA)
+
+Usar los usuarios de prueba de la sección 10.2 (existen en local y QA, no en PROD).
+
+| Paso | Acción en Swagger | Resultado esperado |
+|---|---|---|
+| 1 | `GET /api/v1/menu` sin autorizar | **200** (público) |
+| 2 | `POST /api/v1/platos` sin autorizar | **401** |
+| 3 | `POST /api/v1/auth/login` con `cliente@americanbites.com` | **200** + token JWT |
+| 4 | **Authorize** → pegar el token del cliente → `POST /api/v1/platos` | **403** |
+| 5 | `POST /api/v1/auth/login` con `admin@americanbites.com` → Authorize con ese token → `POST /api/v1/platos` | **201** |
+| 6 | `POST /api/v1/auth/login` con contraseña incorrecta | **401** |
+| 7 | En cualquier respuesta, revisar *Response headers* | `x-frame-options: DENY`, `x-content-type-options: nosniff` |
+
+Para mostrar que los passwords están hasheados:
+
+```bash
+docker exec american-bites-postgres psql -U postgres -d american_bites -c "select email, left(password, 20) from usuarios;"
+```
+
+Todos empiezan por `$2a$10$` (BCrypt). Para las pruebas automáticas: `mvn test` (todas en verde).
+
+### 13.5 Demostración 3 — CI/CD
+
+1. **Repositorio → Actions → "CI - Build · Test · Deploy QA"**: mostrar el último run en verde con los jobs *Pruebas → Build y Push Docker → Desplegar a QA*.
+2. **Actions → "CD - Deploy PROD"**: mostrar el run del tag `v1.0.0` con la aprobación manual registrada en *Deployment protection rules*.
+3. **Settings → Environments**: `qa` (sin aprobación) y `production` (con *Required reviewers*).
+4. **Settings → Secrets and variables → Actions**: la lista de secrets (solo nombres; los valores nunca se muestran).
+5. Abrir **QA** y **PROD** (sección 11.3). En PROD, el login con `admin@americanbites.com` devuelve **401**: no hay usuarios de prueba en producción.
+6. (Opcional) Mostrar un despliegue en vivo: hacer un cambio pequeño, `git push` a `develop` y ver el pipeline correr.
+
+### 13.6 Apagar todo al terminar
+
+```bash
+az webapp stop -g rg-americanbites -n americanbites-jdv-qa
+az webapp stop -g rg-americanbites -n americanbites-jdv-prod
+az appservice plan update -g rg-americanbites -n plan-americanbites --sku F1
+az postgres flexible-server stop -g rg-americanbites -n americanbites-jdv-pg
+docker compose down
+```
+
+> Bajar el plan a **F1** es lo que detiene el cobro de App Service (detener las apps no basta). Azure reinicia PostgreSQL automáticamente a los 7 días de detenido; si no se va a usar, volver a ejecutar el `stop`. Cosmos DB está en la capa gratuita y no genera costo.
