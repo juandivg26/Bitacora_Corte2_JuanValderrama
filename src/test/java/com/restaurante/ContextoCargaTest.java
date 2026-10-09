@@ -24,6 +24,7 @@ import org.springframework.transaction.PlatformTransactionManager;
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "jwt.secret=VGVzdFNlY3JldFBhcmFQcnVlYmFzSldUQW1lcmljYW5CaXRlczIwMjY=",
         // Sin MongoDB en el entorno de pruebas: se silencia el monitor del driver
         "logging.level.org.mongodb.driver.cluster=OFF"
 })

@@ -2,7 +2,7 @@
 
 **Autor:** Juan Diego Valderrama Gaviria  
 **Asignatura:** Diseño y Construcción de Software (DOSW) — Escuela Colombiana de Ingeniería Julio Garavito  
-**Entrega:** Bitácora - Restaurante API (Semanas S7, S8 y S9), Corte 2
+**Entrega:** Bitácora - Restaurante API (Semanas S7 a S10), Corte 2
 
 ---
 
@@ -31,6 +31,9 @@ El proyecto está construido en **Java 21 + Spring Boot**, siguiendo una arquite
 | H2 (solo en pruebas) | Base de datos embebida para las pruebas de persistencia |
 | MongoDB (Spring Data MongoDB) | Persistencia NoSQL: log de eventos de pedidos |
 | JaCoCo | Cobertura de pruebas |
+| Spring Security 6 + jjwt 0.12 | Autenticación (JWT, HTTP Basic, OAuth2 Google) y autorización por rol |
+| Docker + Docker Compose | Empaquetado de la API y stack local con PostgreSQL y MongoDB |
+| GitHub Actions + Azure App Service | CI/CD con ambientes QA y PROD |
 
 ---
 
@@ -304,6 +307,7 @@ eventualmente consistente y su fallo no debe tumbar la operación del restaurant
 ### 7.1 Requisitos
 - PostgreSQL en ejecución y base de datos `american_bites` creada
 - MongoDB en ejecución (local o MongoDB Atlas). Configurar la URI en `application.properties` (`spring.data.mongodb.uri`)
+- Copiar `.env.properties.example` a `.env.properties` (ignorado por Git) y definir `DB_PASSWORD` y `JWT_SECRET` (mínimo 32 bytes). El secreto JWT ya no tiene valor por defecto en el código.
 
 ### 7.2 Comandos
 ```bash
@@ -432,7 +436,7 @@ La batería incluye:
 
 - Reporte de JaCoCo: `target/site/jacoco/index.html`
 
-### 8.1 Análisis estático con SonarQube
+### 9.1 Análisis estático con SonarQube
 
 El proyecto ya trae el plugin `sonar-maven-plugin` y el archivo [`sonar-project.properties`](sonar-project.properties)
 configurado (fuentes, pruebas, binarios, clases de test y las rutas de cobertura de JaCoCo).
@@ -453,11 +457,135 @@ mvn sonar:sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=TU_TOKEN
 
 ---
 
-## 9. Ejemplos de demostración (verificación en Swagger + DBeaver)
+## 10. Seguridad
+
+La API usa **Spring Security 6** en modo *stateless*: el login devuelve un **JWT** (HS256, expira en 1 hora) que se envía en `Authorization: Bearer <token>`. También acepta **HTTP Basic** y, con el perfil `oauth2`, **login con Google**, que crea el usuario como `CLIENTE` y devuelve un JWT propio.
+
+### 10.1 Roles y permisos por endpoint
+
+Configurado en [`SecurityConfig`](src/main/java/com/restaurante/config/SecurityConfig.java), trazable a `docs/Roles_AmericanBites.xlsx`.
+
+| Endpoint | Método | ¿Quién puede? |
+|---|---|---|
+| `/api/v1/auth/login`, `/api/v1/auth/registro` | POST | Público |
+| `/api/v1/menu/**` | GET | Público (carta) |
+| `/swagger-ui/**`, `/v3/api-docs/**` | GET | Público |
+| `/api/v1/platos/**` | GET | ADMINISTRADOR, MESERO, COCINERO, CAJERO |
+| `/api/v1/platos/**` | POST, PUT, PATCH, DELETE | ADMINISTRADOR |
+| `/api/v1/mesas/**` | GET | ADMINISTRADOR, MESERO, COCINERO, CAJERO |
+| `/api/v1/mesas/{id}/estado` | PATCH | ADMINISTRADOR, MESERO |
+| `/api/v1/mesas/**` | POST, DELETE | ADMINISTRADOR |
+| `/api/v1/pedidos/**` | GET | ADMINISTRADOR, MESERO, COCINERO, CAJERO |
+| `/api/v1/pedidos/**` | POST | ADMINISTRADOR, MESERO |
+| `/api/v1/pedidos/{id}/estado` | PATCH | ADMINISTRADOR, MESERO, COCINERO |
+| `/api/v1/cuentas/**` | GET | ADMINISTRADOR, MESERO, CAJERO |
+| `/api/v1/cuentas/**` | POST | ADMINISTRADOR, MESERO |
+| `/api/v1/cuentas/{id}/pago`, `/cerrar` | PATCH | ADMINISTRADOR, CAJERO |
+| `/api/v1/reservas`, `/api/v1/reservas/mesa/**` | GET | ADMINISTRADOR, MESERO, CAJERO |
+| `/api/v1/reservas/{id}` | GET | ADMINISTRADOR, MESERO, CAJERO, CLIENTE |
+| `/api/v1/reservas/**` | POST, PATCH | ADMINISTRADOR, MESERO, CLIENTE |
+| `/api/v1/eventos/**` | GET | ADMINISTRADOR, MESERO, COCINERO, CAJERO |
+| `/api/v1/usuarios/**` | Todos | ADMINISTRADOR |
+
+`401` = sin token, token inválido o expirado. `403` = token válido pero rol sin permiso. Ambos responden con `ErrorResponseDTO`.
+
+### 10.2 Usuarios de prueba
+
+En local y QA, `DataInitializer` crea un usuario por rol (`admin@`, `mesero@`, `cocinero@`, `cajero@`, `cliente@americanbites.com`) si la tabla está vacía. En **PROD se desactiva** con `APP_SEED_USERS=false`, para que no existan cuentas con contraseñas conocidas.
+
+### 10.3 Probar en Swagger
+
+1. `POST /api/v1/auth/login` con `{"email": "...", "password": "..."}` → copiar `token`.
+2. Botón **Authorize** → `bearerAuth` → pegar el token.
+3. Ejecutar un endpoint protegido → `200`. Sin token → `401`. Con rol incorrecto → `403`.
+
+### 10.4 HTTPS (perfil `ssl`)
+
+```bash
+keytool -genkeypair -alias restaurante -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore src/main/resources/restaurante.p12 -validity 365 -dname "CN=localhost, OU=Dev, O=AmericanBites, L=Bogota, S=DC, C=CO"
+```
+
+Ejecutar con `SPRING_PROFILES_ACTIVE=ssl` y `SSL_KEYSTORE_PASSWORD` definidos → `https://localhost:8443/swagger-ui/index.html`. El `.p12` está en `.gitignore`.
+
+### 10.5 OAuth2 con Google (perfil `oauth2`)
+
+Crear un *ID de cliente OAuth* en Google Cloud Console con la URI de redirección `http://localhost:8080/login/oauth2/code/google`, definir `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`, y ejecutar con `SPRING_PROFILES_ACTIVE=oauth2`. Abrir `http://localhost:8080/oauth2/authorization/google`.
+
+### 10.6 CORS y headers
+
+[`CorsConfig`](src/main/java/com/restaurante/config/CorsConfig.java) permite los frontends locales (`localhost:3000`, `5173`, `4200`) y `https://*.americanbites.com`, sin `allowCredentials` (el JWT viaja en el header). Las respuestas incluyen `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection: 1; mode=block` y `Content-Security-Policy`.
+
+### 10.7 Checklist OWASP Top 10
+
+| # | Riesgo | Estado en el proyecto |
+|---|---|---|
+| A1 | Broken Access Control | Reglas por rol en `SecurityConfig`; pruebas `403` en `SecurityTest` |
+| A2 | Cryptographic Failures | Passwords con BCrypt; JWT HS256 con secreto ≥ 32 bytes (se rechaza uno más corto); HTTPS con perfil `ssl` y en Azure |
+| A3 | Injection | Solo métodos derivados de Spring Data JPA/MongoRepository, sin concatenar queries |
+| A4 | Insecure Design | `UsuarioResponseDTO` no expone el password; el registro fuerza el rol `CLIENTE` |
+| A5 | Security Misconfiguration | Errores 500 sin stack trace; secretos solo por variables de entorno; sin usuarios seed en PROD |
+| A6 | Vulnerable Components | Spring Boot 3.3.4 y jjwt 0.12.6 desde Maven Central |
+| A7 | Authentication Failures | Tokens con expiración; token expirado → `401`. **Pendiente:** rate limiting en `/auth/login` |
+| A8 | Integrity Failures | Firma JWT verificada en cada petición por jjwt |
+| A9 | Logging & Monitoring | Se registran logins fallidos, `401`, `403` y tokens inválidos |
+| A10 | SSRF | No aplica: la API no recibe URLs como entrada |
+
+### 10.8 Pruebas de seguridad
+
+`SecurityTest`, `RegistrationSecurityTest` y `JwtUtilTest` cubren: login exitoso/fallido, `401` sin token, con token inválido, malformado o expirado, `403` por rol, `201` con rol correcto, HTTP Basic, `/auth/me` y headers de seguridad.
+
+---
+
+## 11. CI/CD y Despliegue
+
+Dos workflows en `.github/workflows/`:
+
+| Workflow | Disparador | Jobs | Aprobación |
+|---|---|---|---|
+| [`ci-qa.yml`](.github/workflows/ci-qa.yml) | push a `main`/`develop` (PR a `main`: solo pruebas) | test → build-and-push (`qa-<sha>`, `qa-latest`) → deploy-qa | Automática |
+| [`ci-prod.yml`](.github/workflows/ci-prod.yml) | tag `v*.*.*` (`git tag v1.0.0 && git push origin v1.0.0`) | test → build-prod (`1.0.0`, `latest`) → deploy-prod → notify | Manual (environment `production`) |
+
+### 11.1 Ambientes
+
+- **QA:** recibe cada cambio integrado en `main`/`develop`. El equipo valida aquí. Usa usuarios de prueba.
+- **PROD:** solo versiones etiquetadas que ya pasaron por QA, tras la aprobación de un revisor en GitHub. Sin usuarios de prueba.
+
+Cada ambiente tiene su propio App Service, JWT secret y bases de datos (`american_bites_qa` / `american_bites_prod`). Para ahorrar crédito, ambas apps comparten un plan App Service B1, un servidor Azure Database for PostgreSQL Flexible (B1ms) y una cuenta Cosmos DB for MongoDB (capa gratuita), en el grupo de recursos `rg-americanbites` (región `centralus`).
+
+### 11.2 Configuración en GitHub
+
+En *Settings → Environments* crear `qa` y `production` (este último con **Required reviewers**).
+
+**Secrets** (*Settings → Secrets and variables → Actions*, solo nombres):
+
+| Secret | Uso |
+|---|---|
+| `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | Push de la imagen (token de acceso, no el password) |
+| `AZURE_CREDENTIALS` | JSON del Service Principal (`az ad sp create-for-rbac --role contributor --scopes ... --json-auth`) |
+| `JWT_SECRET_QA`, `JWT_SECRET_PROD` | Secreto JWT de cada ambiente (distintos) |
+| `DB_HOST_QA`, `DB_HOST_PROD` | Host del servidor PostgreSQL en Azure |
+| `DB_USER_QA`, `DB_USER_PROD` | Usuario de PostgreSQL |
+| `DB_PASSWORD_QA`, `DB_PASSWORD_PROD` | Password de PostgreSQL |
+| `MONGODB_URI_QA`, `MONGODB_URI_PROD` | Connection string primario de Cosmos DB |
+
+**Variables** (pestaña *Variables*, no son secretas): `AZURE_WEBAPP_NAME_QA`, `AZURE_WEBAPP_NAME_PROD`. Se usan como variables porque GitHub no permite secretos en la URL del environment.
+
+### 11.3 URLs desplegadas
+
+- QA: `https://<AZURE_WEBAPP_NAME_QA>.azurewebsites.net/swagger-ui/index.html`
+- PROD: `https://<AZURE_WEBAPP_NAME_PROD>.azurewebsites.net/swagger-ui/index.html`
+
+### 11.4 Diagrama de despliegue
+
+`docs/diagrama-despliegue.drawio`, exportado en PNG de alta resolución: Desarrollador → GitHub → GitHub Actions → Docker Hub → App Service QA / PROD, cada uno con su PostgreSQL y Cosmos DB.
+
+---
+
+## 12. Ejemplos de demostración (verificación en Swagger + DBeaver)
 
 A continuación se muestran ejemplos concretos para demostrar el flujo **con persistencia real**.
 
-### 9.1 Crear una mesa
+### 12.1 Crear una mesa
 **Request (Swagger):** `POST /api/v1/mesas`
 ```json
 {
@@ -471,7 +599,7 @@ A continuación se muestran ejemplos concretos para demostrar el flujo **con per
 SELECT * FROM mesas;
 ```
 
-### 9.2 Crear un pedido con ítems (congelación de precio)
+### 12.2 Crear un pedido con ítems (congelación de precio)
 1) Crear/asegurar un plato disponible (ej. Hamburguesa id=1)
 2) Usar la `idMesa` creada
 
@@ -496,7 +624,7 @@ SELECT * FROM items_pedido;  -- incluye el precioCongelado
 
 > Se evidencia que el `precioCongelado` se guarda en la tabla de ítems de pedido.
 
-### 9.3 Abrir cuenta y cerrar (total calculado)
+### 12.3 Abrir cuenta y cerrar (total calculado)
 **Request (Swagger):** `POST /api/v1/cuentas`
 ```json
 {
@@ -522,7 +650,7 @@ SELECT * FROM mesas WHERE id = 4;
 
 > En la demostración se observó que el campo `total` queda con el valor calculado (ej. 50000.0) y el estado queda `CERRADA`.
 
-### 9.4 Reservas
+### 12.4 Reservas
 **Request (Swagger):** `POST /api/v1/reservas`
 ```json
 {
