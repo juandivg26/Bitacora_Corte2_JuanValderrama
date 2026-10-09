@@ -405,14 +405,14 @@ docker images
 docker run --rm -p 8080:8080 --env-file .env american-bites-api:1.0
 ```
 
-Para publicar la imagen en Docker Hub, reemplazar `SU_USUARIO` por el usuario real:
+Para publicar la imagen en Docker Hub, usar el usuario `juandivg`:
 
 ```bash
 docker login
-docker build -t SU_USUARIO/american-bites-api:1.0 .
-docker tag SU_USUARIO/american-bites-api:1.0 SU_USUARIO/american-bites-api:latest
-docker push SU_USUARIO/american-bites-api:1.0
-docker push SU_USUARIO/american-bites-api:latest
+docker build -t juandivg/american-bites-api:1.0 .
+docker tag juandivg/american-bites-api:1.0 juandivg/american-bites-api:latest
+docker push juandivg/american-bites-api:1.0
+docker push juandivg/american-bites-api:latest
 ```
 
 > No se publican credenciales ni archivos `.env`. La imagen usa un usuario Linux no privilegiado y el build multietapa excluye Maven y el código fuente de la imagen final.
@@ -491,7 +491,17 @@ Configurado en [`SecurityConfig`](src/main/java/com/restaurante/config/SecurityC
 
 ### 10.2 Usuarios de prueba
 
-En local y QA, `DataInitializer` crea un usuario por rol (`admin@`, `mesero@`, `cocinero@`, `cajero@`, `cliente@americanbites.com`) si la tabla está vacía. En **PROD se desactiva** con `APP_SEED_USERS=false`, para que no existan cuentas con contraseñas conocidas.
+En local y QA, `DataInitializer` crea un usuario por rol si la tabla está vacía. En **PROD se desactiva** con `APP_SEED_USERS=false`, para que no existan cuentas con contraseñas conocidas.
+
+| Email | Contraseña | Rol |
+|---|---|---|
+| `admin@americanbites.com` | `Admin123*` | ADMINISTRADOR |
+| `mesero@americanbites.com` | `Mesero123*` | MESERO |
+| `cocinero@americanbites.com` | `Cocinero123*` | COCINERO |
+| `cajero@americanbites.com` | `Cajero123*` | CAJERO |
+| `cliente@americanbites.com` | `Cliente123*` | CLIENTE |
+
+> Son credenciales de prueba, públicas a propósito y solo para local/QA.
 
 ### 10.3 Probar en Swagger
 
@@ -674,6 +684,16 @@ SELECT * FROM reservas;
 
 Para ahorrar crédito, los recursos de Azure quedan **apagados** cuando no se usan. Esta guía explica cómo encender todo, mostrarlo y volver a apagarlo.
 
+**Orden sugerido de la exposición (~15 min):**
+
+| # | Bloque | Qué se muestra | Tiempo | Sección |
+|---|---|---|---|---|
+| 0 | Contexto | Diagrama de despliegue: push → GitHub Actions → Docker Hub → Azure QA/PROD | 2 min | 11.4 |
+| 1 | Docker | `docker compose ps`, logs, Swagger local, imagen en Docker Hub | 3 min | 13.3 |
+| 2 | Seguridad | Login, 401, 403, 201, headers, passwords BCrypt, `mvn test` | 5 min | 13.4 |
+| 3 | CI/CD | Pipelines en verde, aprobación de PROD, secrets, environments, QA y PROD en línea | 4 min | 13.5 |
+| 4 | Cierre | Checklist OWASP: qué se mitigó y qué queda pendiente (rate limiting) | 1 min | 10.7 |
+
 ### 13.1 Antes de empezar (una sola vez por equipo)
 
 1. Tener **Docker Desktop** abierto.
@@ -713,6 +733,14 @@ docker compose ps
 ### 13.4 Demostración 2 — Seguridad (en Swagger local o QA)
 
 Usar los usuarios de prueba de la sección 10.2 (existen en local y QA, no en PROD).
+
+Body para el login del cliente: `{"email": "cliente@americanbites.com", "password": "Cliente123*"}`
+Body para el login del admin: `{"email": "admin@americanbites.com", "password": "Admin123*"}`
+Body para crear un plato (pasos 4 y 5; cambiar el nombre si ya existe, porque los nombres no se repiten):
+
+```json
+{"nombre": "Hamburguesa Demo", "precio": 25000, "categoria": "HAMBURGUESAS", "descripcion": "Plato creado en la demostración"}
+```
 
 | Paso | Acción en Swagger | Resultado esperado |
 |---|---|---|
