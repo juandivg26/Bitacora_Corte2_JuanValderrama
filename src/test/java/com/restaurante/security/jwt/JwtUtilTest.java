@@ -3,6 +3,7 @@ package com.restaurante.security.jwt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -52,5 +53,13 @@ class JwtUtilTest {
 
         assertFalse(jwtUtil.isValid(token));
         assertTrue(jwtUtil.isTokenExpired(token));
+    }
+
+    @Test
+    @DisplayName("Secreto de menos de 32 bytes se rechaza en lugar de rellenarse")
+    void generarToken_secretoCorto_lanzaExcepcion() {
+        ReflectionTestUtils.setField(jwtUtil, "secret", "corto");
+
+        assertThrows(IllegalStateException.class, () -> jwtUtil.generateToken("a@b.com", "CLIENTE"));
     }
 }

@@ -1,0 +1,55 @@
+' Diagrama de Despliegue - American Bites API
+' Herramienta: https://plantuml.com/
+' Uso: Copiar y pegar en https://plantuml.com/plantuml/
+
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title Diagrama de Despliegue - American Bites API
+
+rectangle "💻 Desarrollador\n(Local)" as DEV #FFFFFF
+
+rectangle "📦 GitHub\nRepositorio" as GH #FFFFFF
+
+rectangle "⚙️ GitHub Actions\nCI/CD Pipeline" as GA #FFF3E0
+
+rectangle "🐳 Docker Hub\nimagen: usuario/api" as DOCKER #E0F7FA
+
+rectangle "☁️ Azure App Service\namerican-bites-qa" as AZURE_QA #E3F2FD
+
+rectangle "🗄️ PostgreSQL QA\namerican-bites-qa\n.database.azure.com" as PG_QA #E3F2FD
+
+rectangle "🍃 MongoDB QA\namerican-bites-qa\n.cosmos.azure.com" as MONGO_QA #E3F2FD
+
+rectangle "📱 Cliente\nSwagger UI" as CLIENT #FFFFFF
+
+DEV --> GH : "git push"
+
+GH --> GA : "dispara pipeline"
+
+GA --> DOCKER : "build + push\nqa-latest"
+
+DOCKER --> AZURE_QA : "deploy\nautomático"
+
+AZURE_QA --> PG_QA : "JDBC"
+AZURE_QA --> MONGO_QA : "MongoDB"
+
+CLIENT --> AZURE_QA : "HTTPS\n/swagger-ui"
+
+note right of AZURE_QA
+  URL QA:
+  https://american-bites-qa
+  .azurewebsites.net
+end note
+
+note right of GA
+  Pipeline QA:
+  1. mvn test
+  2. docker build
+  3. docker push
+  4. azure deploy
+end note
+
+@enduml

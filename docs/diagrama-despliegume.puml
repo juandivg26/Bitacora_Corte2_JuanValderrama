@@ -1,0 +1,106 @@
+@startuml
+' Diagrama de Despliegue - American Bites
+' CI/CD: GitHub Actions + Azure App Service + Docker Hub
+' Colores: QA=Azul, PROD=Verde, CI/CD=Naranja
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+
+package "👨💻 Desarrollador" {
+  component "💻 Git Push\n(local)" as dev
+}
+
+package "📦 GitHub" {
+  component "GitHub Repo\namerican-bites-api" as github
+  file " workflows/ci-qa.yml" as qa_workflow
+  file " workflows/ci-prod.yml" as prod_workflow
+}
+
+package "⚙️ GitHub Actions" {
+  component "CI Pipeline QA\n(Tests + Build)" as github_qa
+  component "CD Pipeline PROD\n(Aprobación manual)" as github_prod
+}
+
+package "🐳 Docker Hub" {
+  component "Imagen Docker:\ntu_usuario/american-bites-api" as docker_hub
+  file "Tags:\n- qa-latest\n- latest\n- v1.0.0" as docker_tags
+}
+
+package "☁️ Azure - QA" {
+  component "App Service\namerican-bites-qa" as azure_qa
+  database "PostgreSQL QA\namerican-bites-qa\n.database.azure.com" as pg_qa
+  database "MongoDB QA\namerican-bites-qa\n.cosmos.azure.com" as mongo_qa
+}
+
+package "☁️ Azure - PROD" {
+  component "App Service\namerican-bites-prod" as azure_prod
+  database "PostgreSQL PROD\namerican-bites-prod\n.database.azure.com" as pg_prod
+  database "MongoDB PROD\namerican-bites-prod\n.cosmos.azure.com" as mongo_prod
+}
+
+package "📱 Cliente" {
+  component "Web/Browser\nSwagger UI" as client
+}
+
+' Flujos principales
+dev --> github : git push\n(rama: main/develop)
+
+github --> qa_workflow
+github --> prod_workflow
+
+qa_workflow --> github_qa : trigger CI
+
+github_qa --> docker_hub : docker build\n+ push qa-latest
+
+docker_hub --> azure_qa : Azure检索 imagen\n+ deploy
+
+azure_qa --> pg_qa : JDBC\nconexión
+azure_qa --> mongo_qa : MongoDB\nconexión
+
+prod_workflow --> github_prod : trigger CD\n(tag v*)
+github_prod --> docker_hub : docker build\n+ push v*
+
+azure_qa --> azure_prod : aprobación manual
+
+azure_prod --> pg_prod : JDBC\nconexión
+azure_prod --> mongo_prod : MongoDB\nconexión
+
+client --> azure_qa : GET/POST\nHTTPS\n/swagger-ui
+client --> azure_prod : GET/POST\nHTTPS\n/swagger-ui
+
+' Colores por ambiente
+package azure_qa {
+  background #E3F2FD
+}
+package azure_prod {
+  background #E8F5E9
+}
+package github_qa {
+  background #FFF3E0
+}
+package docker_hub {
+  background #E0F7FA
+}
+
+' Notas
+note right of github_qa
+  Ejecuta:
+  - mvn test
+  - mvn clean package
+  - docker build & push
+end note
+
+note right of github_prod
+  Requiere aprobación\nmanual en GitHub
+  antes de desplegar
+end note
+
+note bottom of azure_qa
+  https://american-bites-qa.azurewebsites.net\n
+end note
+
+note bottom of azure_prod
+  https://american-bites-prod.azurewebsites.net\n
+end note
+
+@enduml
