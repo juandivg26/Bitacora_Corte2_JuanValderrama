@@ -35,6 +35,7 @@ import com.restaurante.repository.IUsuarioRepository;
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "jwt.secret=VGVzdFNlY3JldFBhcmFQcnVlYmFzSldUQW1lcmljYW5CaXRlczIwMjY=",
         "logging.level.org.mongodb.driver.cluster=OFF"
 })
 @AutoConfigureMockMvc

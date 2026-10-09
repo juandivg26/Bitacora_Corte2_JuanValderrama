@@ -1,0 +1,144 @@
+<mxGraphModel dx="1422" dy="772" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" background="#ffffff" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="2" value="👨💻 Desarrollador" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+      <mxGeometry x="20" y="20" width="200" height="80" as="geometry"/>
+    </mxCell>
+    <mxCell id="3" value="💻 Git Push&lt;br&gt;(local)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+      <mxGeometry x="40" y="40" width="160" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="4" value="📦 GitHub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+      <mxGeometry x="300" y="10" width="180" height="120" as="geometry"/>
+    </mxCell>
+    <mxCell id="5" value="GitHub Repo&lt;br&gt;american-bites-api" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+      <mxGeometry x="320" y="30" width="140" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="6" value=" workflows/ci-qa.yml" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;" parent="1" vertex="1">
+      <mxGeometry x="320" y="80" width="140" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="7" value=" workflows/ci-prod.yml" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;" parent="1" vertex="1">
+      <mxGeometry x="320" y="105" width="140" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="8" value="⚙️ GitHub Actions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+      <mxGeometry x="560" y="10" width="220" height="260" as="geometry"/>
+    </mxCell>
+    <mxCell id="9" value="CI Pipeline QA&lt;br&gt;(Tests + Build)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;" parent="1" vertex="1">
+      <mxGeometry x="580" y="40" width="180" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="10" value="CD Pipeline PROD&lt;br&gt;(Aprobación manual)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;" parent="1" vertex="1">
+      <mxGeometry x="580" y="100" width="180" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="11" value="🐳 Docker Hub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+      <mxGeometry x="860" y="10" width="220" height="160" as="geometry"/>
+    </mxCell>
+    <mxCell id="12" value="Imagen Docker:&lt;br&gt;tu_usuario/american-bites-api" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E0F7FA;strokeColor=#006064;" parent="1" vertex="1">
+      <mxGeometry x="880" y="40" width="180" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="13" value="Tags:&lt;br&gt;- qa-latest&lt;br&gt;- latest&lt;br&gt;- v1.0.0" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E0F7FA;strokeColor=#006064;" parent="1" vertex="1">
+      <mxGeometry x="880" y="90" width="180" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="14" value="☁️ Azure - QA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;" parent="1" vertex="1">
+      <mxGeometry x="1160" y="10" width="200" height="220" as="geometry"/>
+    </mxCell>
+    <mxCell id="15" value="App Service&lt;br&gt;american-bites-qa" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565C0;" parent="1" vertex="1">
+      <mxGeometry x="1180" y="40" width="160" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="16" value="PostgreSQL QA&lt;br&gt;american-bites-qa.database.azure.com" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565C0;" parent="1" vertex="1">
+      <mxGeometry x="1180" y="90" width="160" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="17" value="MongoDB QA&lt;br&gt;american-bites-qa.cosmos.azure.com" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565C0;" parent="1" vertex="1">
+      <mxGeometry x="1180" y="140" width="160" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="18" value="☁️ Azure - PROD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;" parent="1" vertex="1">
+      <mxGeometry x="1160" y="260" width="200" height="220" as="geometry"/>
+    </mxCell>
+    <mxCell id="19" value="App Service&lt;br&gt;american-bites-prod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2E7D32;" parent="1" vertex="1">
+      <mxGeometry x="1180" y="290" width="160" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="20" value="PostgreSQL PROD&lt;br&gt;american-bites-prod.database.azure.com" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2E7D32;" parent="1" vertex="1">
+      <mxGeometry x="1180" y="340" width="160" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="21" value="MongoDB PROD&lt;br&gt;american-bites-prod.cosmos.azure.com" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2E7D32;" parent="1" vertex="1">
+      <mxGeometry x="1180" y="390" width="160" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="22" value="📱 Cliente" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+      <mxGeometry x="20" y="280" width="200" height="80" as="geometry"/>
+    </mxCell>
+    <mxCell id="23" value="Web/Browser&lt;br&gt;Swagger UI" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+      <mxGeometry x="40" y="300" width="160" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="24" value="git push&lt;br&gt;(rama: main/develop)" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#000000;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="240" y="50" as="sourcePoint"/>
+        <mxPoint x="300" y="50" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="25" value="trigger CI" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#E65100;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="480" y="90" as="sourcePoint"/>
+        <mxPoint x="560" y="90" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="26" value="docker build&lt;br&gt;+ push qa-latest" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#E65100;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="780" y="70" as="sourcePoint"/>
+        <mxPoint x="860" y="70" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="27" value="docker build&lt;br&gt;+ push v*" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#E65100;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="780" y="130" as="sourcePoint"/>
+        <mxPoint x="860" y="130" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="28" value="Azure检索 imagen&lt;br&gt;+ deploy" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#1565C0;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="1080" y="70" as="sourcePoint"/>
+        <mxPoint x="1160" y="70" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="29" value="aprobación manual" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#1565C0;dashed=1;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="1080" y="130" as="sourcePoint"/>
+        <mxPoint x="1160" y="130" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="30" value="JDBC&lt;br&gt;conexión" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#1565C0;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="1360" y="60" as="sourcePoint"/>
+        <mxPoint x="1360" y="100" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="31" value="MongoDB&lt;br&gt;conexión" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#1565C0;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="1360" y="110" as="sourcePoint"/>
+        <mxPoint x="1360" y="150" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="32" value="GET/POST&lt;br&gt;HTTPS&lt;br&gt;/swagger-ui" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#000000;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="240" y="310" as="sourcePoint"/>
+        <mxPoint x="1160" y="310" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="33" value="Nota: Ejecuta&lt;br&gt;- mvn test&lt;br&gt;- mvn clean package&lt;br&gt;- docker build &amp;amp; push" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+      <mxGeometry x="800" y="40" width="140" height="80" as="geometry"/>
+    </mxCell>
+    <mxCell id="34" value="Nota: Requiere aprobación&lt;br&gt;manual en GitHub&lt;br&gt;antes de desplegar" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+      <mxGeometry x="800" y="120" width="140" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="35" value="https://american-bites-qa.azurewebsites.net" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+      <mxGeometry x="1180" y="190" width="160" height="30" as="geometry"/>
+    </mxCell>
+    <mxCell id="36" value="https://american-bites-prod.azurewebsites.net" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+      <mxGeometry x="1180" y="440" width="160" height="30" as="geometry"/>
+    </mxCell>
+    <mxCell id="37" value="trigger CD&lt;br&gt;(tag v*)" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#E65100;" parent="1" edge="1">
+      <mxGeometry width="100" height="50" as="geometry">
+        <mxPoint x="480" y="115" as="sourcePoint"/>
+        <mxPoint x="560" y="115" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel>
