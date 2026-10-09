@@ -550,7 +550,7 @@ Dos workflows en `.github/workflows/`:
 - **QA:** recibe cada cambio integrado en `main`/`develop`. El equipo valida aquí. Usa usuarios de prueba.
 - **PROD:** solo versiones etiquetadas que ya pasaron por QA, tras la aprobación de un revisor en GitHub. Sin usuarios de prueba.
 
-Cada ambiente tiene su propio App Service, PostgreSQL (Azure Database for PostgreSQL Flexible Server), Cosmos DB for MongoDB y JWT secret.
+Cada ambiente tiene su propio App Service, JWT secret y bases de datos (`american_bites_qa` / `american_bites_prod`). Para ahorrar crédito, ambas apps comparten un plan App Service B1, un servidor Azure Database for PostgreSQL Flexible (B1ms) y una cuenta Cosmos DB for MongoDB (capa gratuita), en el grupo de recursos `rg-americanbites` (región `centralus`).
 
 ### 11.2 Configuración en GitHub
 

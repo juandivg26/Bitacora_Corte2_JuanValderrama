@@ -108,12 +108,12 @@ jobs:
               {"name": "JWT_SECRET", "value": "${{ secrets.JWT_SECRET_QA }}", "slotSetting": false},
               {"name": "DB_HOST", "value": "${{ secrets.DB_HOST_QA }}", "slotSetting": false},
               {"name": "DB_PORT", "value": "5432", "slotSetting": false},
-              {"name": "DB_NAME", "value": "american_bites", "slotSetting": false},
+              {"name": "DB_NAME", "value": "american_bites_qa", "slotSetting": false},
               {"name": "DB_USER", "value": "${{ secrets.DB_USER_QA }}", "slotSetting": false},
               {"name": "DB_PASSWORD", "value": "${{ secrets.DB_PASSWORD_QA }}", "slotSetting": false},
               {"name": "DB_SSLMODE", "value": "require", "slotSetting": false},
               {"name": "MONGODB_URI", "value": "${{ secrets.MONGODB_URI_QA }}", "slotSetting": false},
-              {"name": "MONGO_DB", "value": "american_bites", "slotSetting": false},
+              {"name": "MONGO_DB", "value": "american_bites_qa", "slotSetting": false},
               {"name": "JPA_DDL_AUTO", "value": "update", "slotSetting": false},
               {"name": "JPA_SHOW_SQL", "value": "false", "slotSetting": false}
             ]
