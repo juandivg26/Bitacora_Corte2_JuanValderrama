@@ -95,7 +95,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/platos/**")
                         .hasAnyRole("ADMINISTRADOR", "ADMIN", "CHEF")
 
-                        // Módulo Mesas
+                        // Módulo Mesas (el cliente consulta las disponibles para pedir en su mesa)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mesas/disponibles")
+                        .hasAnyRole("ADMINISTRADOR", "ADMIN", "MESERO", "COCINERO", "CHEF", "CAJERO", "CLIENTE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/mesas/**")
                         .hasAnyRole("ADMINISTRADOR", "ADMIN", "MESERO", "COCINERO", "CHEF", "CAJERO")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/mesas/*/estado")
@@ -105,7 +107,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/mesas/**")
                         .hasAnyRole("ADMINISTRADOR", "ADMIN")
 
-                        // Módulo Pedidos
+                        // Módulo Pedidos (el cliente crea su pedido y sigue su estado por id)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/pedidos/*")
+                        .hasAnyRole("ADMINISTRADOR", "ADMIN", "MESERO", "COCINERO", "CHEF", "CAJERO", "CLIENTE")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/pedidos")
+                        .hasAnyRole("ADMINISTRADOR", "ADMIN", "MESERO", "CLIENTE")
                         .requestMatchers(HttpMethod.GET, "/api/v1/pedidos/**")
                         .hasAnyRole("ADMINISTRADOR", "ADMIN", "MESERO", "COCINERO", "CHEF", "CAJERO")
                         .requestMatchers(HttpMethod.POST, "/api/v1/pedidos/**")

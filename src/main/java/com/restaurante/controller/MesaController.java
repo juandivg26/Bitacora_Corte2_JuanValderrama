@@ -47,7 +47,7 @@ public class MesaController implements MesaApi {
 
     @Override
     @GetMapping("/disponibles")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO', 'CLIENTE')")
     public ResponseEntity<List<MesaResponseDTO>> obtenerDisponibles() {
         List<Mesa> mesas = mesaService.obtenerDisponibles();
         return ResponseEntity.ok(mesaMapper.toResponseList(mesas));

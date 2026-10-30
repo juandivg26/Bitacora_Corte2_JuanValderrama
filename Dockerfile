@@ -29,6 +29,8 @@ USER spring
 
 ENV SPRING_PROFILES_ACTIVE=docker
 ENV SERVER_PORT=8080
+# Hora de Colombia: los pedidos y reservas guardan LocalDateTime con la zona del servidor
+ENV TZ=America/Bogota
 
 EXPOSE 8080
 

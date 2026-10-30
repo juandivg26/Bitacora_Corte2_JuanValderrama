@@ -2,7 +2,8 @@
 
 **Autor:** Juan Diego Valderrama Gaviria  
 **Asignatura:** Diseño y Construcción de Software (DOSW) — Escuela Colombiana de Ingeniería Julio Garavito  
-**Entrega:** Bitácora - Restaurante API (Semanas S7 a S10), Corte 2
+**Entrega:** Bitácora - Restaurante API (Semanas S7 a S10), Corte 2  
+**Front (React + Vite):** https://github.com/juandivg26/Front_Corte2_JuanValderrama
 
 ---
 
@@ -490,11 +491,14 @@ Configurado en [`SecurityConfig`](src/main/java/com/restaurante/config/SecurityC
 | `/swagger-ui/**`, `/v3/api-docs/**` | GET | Público |
 | `/api/v1/platos/**` | GET | ADMINISTRADOR, MESERO, COCINERO, CAJERO |
 | `/api/v1/platos/**` | POST, PUT, PATCH, DELETE | ADMINISTRADOR |
+| `/api/v1/mesas/disponibles` | GET | ADMINISTRADOR, MESERO, COCINERO, CAJERO, CLIENTE |
 | `/api/v1/mesas/**` | GET | ADMINISTRADOR, MESERO, COCINERO, CAJERO |
 | `/api/v1/mesas/{id}/estado` | PATCH | ADMINISTRADOR, MESERO |
 | `/api/v1/mesas/**` | POST, DELETE | ADMINISTRADOR |
+| `/api/v1/pedidos/{id}` | GET | ADMINISTRADOR, MESERO, COCINERO, CAJERO, CLIENTE (sigue su pedido) |
+| `/api/v1/pedidos` | POST | ADMINISTRADOR, MESERO, CLIENTE (pide desde su mesa) |
 | `/api/v1/pedidos/**` | GET | ADMINISTRADOR, MESERO, COCINERO, CAJERO |
-| `/api/v1/pedidos/**` | POST | ADMINISTRADOR, MESERO |
+| `/api/v1/pedidos/{id}/items` | POST | ADMINISTRADOR, MESERO |
 | `/api/v1/pedidos/{id}/estado` | PATCH | ADMINISTRADOR, MESERO, COCINERO |
 | `/api/v1/cuentas/**` | GET | ADMINISTRADOR, MESERO, CAJERO |
 | `/api/v1/cuentas/**` | POST | ADMINISTRADOR, MESERO |
