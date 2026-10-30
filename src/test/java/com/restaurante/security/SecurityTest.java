@@ -135,6 +135,40 @@ class SecurityTest {
     }
 
     @Test
+    @DisplayName("CLIENTE puede ver mesas disponibles pero no la lista completa de pedidos")
+    @WithMockUser(username = "cliente@americanbites.com", roles = {"CLIENTE"})
+    void cliente_mesasDisponibles200_listaPedidos403() throws Exception {
+        mockMvc.perform(get("/api/v1/mesas/disponibles")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/mesas")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/pedidos")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("CLIENTE puede crear su pedido (pasa seguridad: mesa inexistente da 404, no 403)")
+    @WithMockUser(username = "cliente@americanbites.com", roles = {"CLIENTE"})
+    void cliente_crearPedido_noEsProhibido() throws Exception {
+        mockMvc.perform(post("/api/v1/pedidos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"idMesa\":999,\"items\":[{\"idPlato\":1,\"cantidad\":1}]}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("CLIENTE no puede agregar items ni cambiar estado de pedidos")
+    @WithMockUser(username = "cliente@americanbites.com", roles = {"CLIENTE"})
+    void cliente_modificarPedido_devuelve403() throws Exception {
+        String id = "01a18a25-4eeb-753d-9805-7b6edd576488";
+        mockMvc.perform(post("/api/v1/pedidos/" + id + "/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"idPlato\":1,\"cantidad\":1}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/v1/pedidos/" + id + "/estado")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"estado\":\"LISTO\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("COCINERO con solo ROLE_COCINERO no puede crear platos (no tiene ROLE_CHEF)")
     @WithMockUser(username = "cocinero@americanbites.com", roles = {"COCINERO"})
     void crearPlato_conRolCocineroSolo_devuelve403() throws Exception {

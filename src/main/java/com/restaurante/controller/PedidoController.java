@@ -58,7 +58,7 @@ public class PedidoController implements PedidoApi {
 
     @Override
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'COCINERO', 'CHEF', 'CAJERO', 'CLIENTE')")
     public ResponseEntity<PedidoResponseDTO> obtenerPorId(@PathVariable UUID id) {
         Pedido pedido = pedidoService.obtenerPorId(id);
         return ResponseEntity.ok(pedidoMapper.toResponse(pedido));
@@ -66,7 +66,7 @@ public class PedidoController implements PedidoApi {
 
     @Override
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'MESERO', 'CLIENTE')")
     public ResponseEntity<PedidoResponseDTO> crear(@RequestBody @Valid PedidoRequestDTO dto) {
         log.info("POST /api/v1/pedidos - idMesa={}", dto.getIdMesa());
         Pedido pedido = pedidoMapper.toDomain(dto);
