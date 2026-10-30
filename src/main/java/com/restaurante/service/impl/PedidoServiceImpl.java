@@ -40,6 +40,7 @@ public class PedidoServiceImpl implements IPedidoService {
     private final IEventoPedidoService eventoPedidoService;
 
     @Override
+    @Transactional(readOnly = true)
     public List<Pedido> obtenerTodos() {
         List<Pedido> pedidos = repository.findAll().stream()
                 .map(entityMapper::toDomain)
@@ -49,6 +50,7 @@ public class PedidoServiceImpl implements IPedidoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Pedido> obtenerPorMesa(Long idMesa) {
         return repository.findByIdMesa(idMesa).stream()
                 .map(entityMapper::toDomain)
@@ -56,6 +58,7 @@ public class PedidoServiceImpl implements IPedidoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Pedido obtenerPorId(UUID id) {
         PedidoEntity entity = repository.findById(id)
                 .orElseThrow(() -> {
