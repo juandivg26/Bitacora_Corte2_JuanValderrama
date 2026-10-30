@@ -2,7 +2,8 @@
 
 **Autor:** Juan Diego Valderrama Gaviria  
 **Asignatura:** Diseño y Construcción de Software (DOSW) — Escuela Colombiana de Ingeniería Julio Garavito  
-**Entrega:** Bitácora - Restaurante API (Semanas S7 a S10), Corte 2
+**Entrega:** Bitácora - Restaurante API (Semanas S7 a S10), Corte 2  
+**Front (React + Vite):** https://github.com/juandivg26/Front_Corte2_JuanValderrama
 
 ---
 
